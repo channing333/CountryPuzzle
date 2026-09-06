@@ -184,6 +184,56 @@
   }
   /* 手機（觸控）：點擊切換顯示 */
   .options button.show-tip .flag-tip { display: block; }
+  /* 地理位置地圖 */
+  .map-sec { margin-bottom: 16px; }
+  .map-title { color: var(--accent); font-weight: bold; font-size: .95rem; margin-bottom: 10px; }
+  .map-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 10px;
+    align-items: start;
+  }
+  @media (max-width: 480px) { .map-grid { grid-template-columns: 1fr; } }
+  .map-box {
+    position: relative;
+    background: #0b1220;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .map-box canvas { display: block; width: 100%; }
+  .map-tag {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: .72rem;
+    color: var(--muted);
+    background: rgba(11,18,32,.75);
+    padding: 2px 8px;
+    border-radius: 999px;
+    pointer-events: none;
+  }
+  .map-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-radius: 50%;
+    background: #f87171;
+    box-shadow: 0 0 4px rgba(248,113,113,.9);
+    pointer-events: none;
+  }
+  .map-dot::after {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 2px solid #f87171;
+    animation: mapPulse 1.6s ease-out infinite;
+  }
+  @keyframes mapPulse {
+    from { transform: scale(.5); opacity: 1; }
+    to { transform: scale(2.4); opacity: 0; }
+  }
   .result-banner {
     text-align: center;
     font-size: 1.2rem;
@@ -464,6 +514,13 @@
     <div class="item"><div class="label">主要語言</div><div class="value" id="info-lang"></div></div>
     <div class="item"><div class="label">貨幣</div><div class="value" id="info-currency"></div></div>
   </div>
+  <div class="map-sec hidden" id="map-sec">
+    <div class="map-title">🗺️ 地理位置 — <span id="map-caption"></span></div>
+    <div class="map-grid">
+      <div class="map-box"><canvas id="map-world"></canvas><div class="map-tag">🌐 世界</div><div class="map-dot hidden" id="dot-world"></div></div>
+      <div class="map-box"><canvas id="map-zoom"></canvas><div class="map-tag" id="map-zoom-tag"></div><div class="map-dot hidden" id="dot-zoom"></div></div>
+    </div>
+  </div>
   <div class="fact"><span class="label">特色</span><span id="info-fact"></span></div>
   <div class="fact flag-fact"><span class="label">國旗設計</span><span id="info-flagdesign"></span></div>
   <div class="confuse hidden" id="confuse">
@@ -498,6 +555,7 @@
 </footer>
 
 <script src="audio/manifest.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
 <script>
 const COUNTRIES = [
   // ===== 亞洲 =====
@@ -707,6 +765,169 @@ const COUNTRIES = [
 
 const CONTINENT_KEY = c => c.continent.split("/")[0];
 const FLAG_URL = (code, w) => `https://flagcdn.com/w${w}/${code}.png`;
+
+// ===== 地理位置地圖 =====
+// 各國代表點 [緯度, 經度]（取主要領土內部的一點）
+const LATLNG = {
+  tw:[23.7,121.0], jp:[36.0,138.0], kr:[36.5,127.8], kp:[40.0,127.0], cn:[35.0,103.0], in:[22.8,79.0],
+  th:[15.5,101.0], vn:[21.2,105.0], sg:[1.35,103.82], my:[4.2,102.0], id:[-7.3,110.0], ph:[16.0,121.2],
+  bn:[4.4,114.7], la:[19.8,102.3], mm:[21.0,96.1], kh:[12.6,104.9], tl:[-8.8,125.8], bd:[24.0,90.3],
+  pk:[30.0,69.5], lk:[7.6,80.7], mv:[4.17,73.5], bt:[27.4,90.4], np:[28.2,84.0], af:[34.3,66.0],
+  ir:[32.5,54.5], iq:[32.5,43.0], sy:[35.2,38.5], jo:[31.0,36.5], lb:[34.0,36.1], il:[31.4,34.8],
+  ps:[31.9,35.3], sa:[24.0,45.0], ae:[24.2,54.7], kw:[29.3,47.6], qa:[25.3,51.2], bh:[26.03,50.55],
+  om:[20.5,56.5], ye:[15.8,47.0], tr:[39.0,34.5], cy:[35.0,33.2], ge:[42.1,43.5], am:[40.4,44.7],
+  az:[40.4,47.7], kz:[48.5,67.0], uz:[41.8,63.8], tm:[39.0,59.0], kg:[41.6,74.5], tj:[38.9,70.5],
+  mn:[46.9,103.0],
+  fr:[47.2,2.4], de:[51.0,10.2], gb:[53.5,-1.8], it:[42.9,12.5], es:[40.0,-3.5], pt:[39.5,-8.1],
+  nl:[52.3,5.7], be:[50.5,4.6], lu:[49.75,6.05], ch:[46.8,8.3], at:[47.6,14.1], li:[47.15,9.55],
+  mc:[43.73,7.42], ad:[42.55,1.56], sm:[43.94,12.45], va:[41.9,12.45], mt:[35.9,14.4], se:[62.5,15.5],
+  no:[61.6,9.5], fi:[62.8,26.0], dk:[55.9,9.2], is:[64.9,-18.6], ie:[53.3,-8.2], gr:[39.6,21.8],
+  pl:[52.2,19.3], cz:[49.8,15.3], sk:[48.7,19.3], hu:[47.1,19.3], si:[46.1,14.9], hr:[45.5,16.5],
+  ba:[44.3,17.9], rs:[43.9,20.8], me:[42.8,19.2], mk:[41.5,21.6], al:[40.9,20.1], xk:[42.6,21.0],
+  bg:[42.6,25.0], ro:[45.8,24.9], md:[47.3,28.4], ua:[49.3,32.0], by:[53.5,28.0], ru:[57.5,45.0],
+  lt:[55.2,24.0], lv:[56.9,26.5], ee:[58.8,25.6],
+  us:[39.8,-98.5], ca:[55.0,-105.0], mx:[24.0,-102.5], gt:[15.3,-90.4], bz:[17.1,-88.8], sv:[13.7,-88.9],
+  hn:[14.7,-86.8], ni:[12.9,-85.0], cr:[10.0,-84.1], pa:[8.5,-80.3], cu:[21.9,-78.9], bs:[24.4,-77.9],
+  jm:[18.1,-77.3], ht:[19.3,-72.3], do:[18.9,-70.2], kn:[17.3,-62.75], ag:[17.07,-61.8], dm:[15.42,-61.34],
+  lc:[13.9,-60.97], vc:[13.25,-61.19], bb:[13.17,-59.55], gd:[12.11,-61.68], tt:[10.4,-61.25],
+  br:[-10.0,-53.0], ar:[-34.0,-64.5], cl:[-35.7,-71.2], pe:[-9.2,-74.9], co:[4.5,-73.2], ve:[7.1,-66.0],
+  ec:[-1.4,-78.4], bo:[-17.0,-64.5], py:[-23.4,-58.4], uy:[-32.9,-56.1], gy:[5.1,-58.9], sr:[4.1,-55.9],
+  eg:[26.6,30.0], dz:[28.0,2.6], tn:[34.2,9.4], ly:[27.0,17.0], ma:[31.8,-6.3], sd:[15.6,30.2],
+  ss:[7.3,30.3], er:[15.2,38.9], dj:[11.6,42.6], so:[4.5,45.5], et:[8.6,39.6], ke:[0.4,37.9],
+  ug:[1.4,32.4], rw:[-1.9,29.9], bi:[-3.3,29.9], tz:[-6.4,34.9], cd:[-2.9,23.6], cg:[-0.5,15.5],
+  ga:[-0.6,11.8], gq:[1.6,10.3], cm:[5.7,12.4], cf:[6.6,20.9], td:[15.4,18.7], ne:[17.5,9.3],
+  ml:[17.0,-2.0], bf:[12.2,-1.6], sn:[14.4,-14.7], gm:[13.45,-15.3], gw:[12.0,-14.7], gn:[10.4,-10.9],
+  sl:[8.5,-11.8], lr:[6.4,-9.4], ci:[7.5,-5.6], gh:[7.9,-1.2], tg:[8.6,0.9], bj:[9.6,2.3],
+  ng:[9.1,8.7], mr:[20.2,-10.5], cv:[15.1,-23.62], st:[0.23,6.6], ao:[-12.3,17.4], zm:[-14.6,27.8],
+  mw:[-13.3,33.9], mz:[-16.5,36.5], zw:[-19.0,29.9], bw:[-22.3,24.0], na:[-21.9,16.9], sz:[-26.5,31.4],
+  ls:[-29.5,28.2], mg:[-19.3,46.7], mu:[-20.28,57.55], sc:[-4.68,55.45], km:[-11.6,43.35], za:[-29.5,24.5],
+  au:[-24.5,134.0], nz:[-43.5,171.0], pg:[-6.5,144.5], fj:[-17.8,178.0], sb:[-9.6,160.1], vu:[-15.4,166.9],
+  ws:[-13.9,-171.75], to:[-21.2,-175.2], tv:[-8.52,179.2], ki:[1.45,173.0], nr:[-0.53,166.92],
+  pw:[7.34,134.48], fm:[6.88,158.22], mh:[7.1,171.38],
+};
+// 各洲的地圖框範圍 [西經度, 東經度, 南緯度, 北緯度]（大洋洲跨換日線：西半球經度 +360）
+const CONT_BOUNDS = {
+  "亞洲":[25,150,-12,56], "歐洲":[-25,55,34,72], "北美洲":[-170,-50,5,75],
+  "南美洲":[-85,-33,-57,14], "非洲":[-26,60,-36,38], "大洋洲":[110,215,-50,17],
+};
+const WORLD_BOUNDS = [-180,180,-60,85];
+
+let geoData = null, geoPromise = null;
+function loadGeo() {
+  if (!geoPromise) {
+    geoPromise = (typeof topojson === "undefined"
+      ? Promise.reject()
+      : fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+          .then(r => r.json())
+          .then(t => {
+            const feats = topojson.feature(t, t.objects.countries).features;
+            unwrapRings(feats);
+            geoData = feats;
+          })
+    ).catch(() => { geoData = null; });
+  }
+  return geoPromise;
+}
+
+// 微型國家在低解析度地圖裡沒有自己的圖形（點會落在鄰國），只顯示標記點、不亮國土
+const NO_SHAPE = new Set(["sg","li","mc","ad","sm","va"]);
+// 把經度平移到與前一點連續（處理跨換日線的圖形，如斐濟）
+function nearLon(x, ref) {
+  if (x - ref > 180) return x - 360;
+  if (ref - x > 180) return x + 360;
+  return x;
+}
+// 載入後把每個環的經度展開成連續數列，跨換日線的環才不會被撕裂
+function unwrapRings(features) {
+  for (const f of features) {
+    const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const poly of polys) for (const ring of poly) {
+      for (let i = 1; i < ring.length; i++) ring[i][0] = nearLon(ring[i][0], ring[i - 1][0]);
+    }
+  }
+}
+// 射線法：點是否在環內
+function pip(lon, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+// 找出包含該點的國家圖形（用來把國土整塊亮起來；小島國在低解析度地圖裡沒有圖形就只顯示標記點）
+function featureAt(lon, lat) {
+  if (!geoData) return null;
+  for (const f of geoData) {
+    const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const poly of polys) {
+      // 展開後的環經度可能落在 ±360 的任一側，測三個候選經度
+      for (const L of [lon - 360, lon, lon + 360]) {
+        if (pip(L, lat, poly[0]) && poly.slice(1).every(h => !pip(L, lat, h))) return f;
+      }
+    }
+  }
+  return null;
+}
+
+function drawMap(canvas, dot, b, pos, target, sh) {
+  const cssW = canvas.parentElement.clientWidth || 300;
+  const dLon = b[1] - b[0], dLat = b[3] - b[2];
+  const cssH = Math.round(cssW * dLat / dLon);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.height = cssH + "px";
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const s = cssW / dLon;
+  const X = lon => (sh(lon) - b[0]) * s;
+  const Y = lat => (b[3] - lat) * s;
+  ctx.fillStyle = "#0b1220";
+  ctx.fillRect(0, 0, cssW, cssH);
+  const drawFeature = (f, fill, stroke) => {
+    const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+    ctx.beginPath();
+    for (const poly of polys) for (const ring of poly) {
+      let prev = ring[0][0]; // 逐點展開經度，避免跨換日線的圖形畫出橫貫地圖的線
+      for (let i = 0; i < ring.length; i++) {
+        prev = nearLon(ring[i][0], prev);
+        const x = X(prev), y = Y(ring[i][1]);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.closePath();
+    }
+    ctx.fillStyle = fill;
+    ctx.fill("evenodd");
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = .5;
+    ctx.stroke();
+  };
+  for (const f of geoData) {
+    if (f.properties.name === "Antarctica") continue;
+    drawFeature(f, "#2b3a54", "#0b1220");
+  }
+  if (target) drawFeature(target, "rgba(56,189,248,.8)", "#7dd3fc");
+  dot.style.left = (X(pos[1]) / cssW * 100) + "%";
+  dot.style.top = (Y(pos[0]) / cssH * 100) + "%";
+  dot.classList.remove("hidden");
+}
+
+async function renderMaps(c) {
+  const sec = $("map-sec");
+  const pos = LATLNG[c.code];
+  if (!pos) { sec.classList.add("hidden"); return; }
+  await loadGeo();
+  if (!geoData || infoCountry !== c) { if (!geoData) sec.classList.add("hidden"); return; }
+  sec.classList.remove("hidden");
+  $("map-caption").textContent = `${c.zh}（${c.continent}）`;
+  const key = CONTINENT_KEY(c);
+  $("map-zoom-tag").textContent = "📍 " + key;
+  const target = NO_SHAPE.has(c.code) ? null : featureAt(pos[1], pos[0]);
+  const shOce = lon => lon < -30 ? lon + 360 : lon;
+  drawMap($("map-world"), $("dot-world"), WORLD_BOUNDS, pos, target, lon => lon);
+  drawMap($("map-zoom"), $("dot-zoom"), CONT_BOUNDS[key], pos, target, key === "大洋洲" ? shOce : (lon => lon));
+}
 
 // 簡單模式題庫：60 個較知名的國家
 const EASY_CODES = new Set([
@@ -1000,6 +1221,8 @@ function showInfo(c, fromGallery) {
   // 容易混淆的國旗／名字
   renderConfuse("confuse", CONFUSE_MAP[c.code], c.code, false);
   renderConfuse("nconfuse", NAME_CONFUSE_MAP[c.code], c.code, true);
+  // 地理位置地圖
+  renderMaps(c);
   $("info").classList.remove("hidden");
   $("info").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -1243,6 +1466,7 @@ applySettings();
 updateStats();
 updateBadges();
 nextQuestion();
+loadGeo(); // 預先載入世界地圖資料
 </script>
 </body>
 </html>
