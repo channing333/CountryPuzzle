@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>認識國家 — 國旗猜謎</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-2: #273549;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --correct: #22c55e;
+    --wrong: #ef4444;
+    --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+    background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 100%);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  header {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  header h1 { font-size: 1.5rem; letter-spacing: 2px; }
+  header h1 span { color: var(--accent); }
+  .stats {
+    display: flex;
+    gap: 14px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .stats b { color: var(--text); font-size: 1.05rem; }
+  .mode-switch {
+    display: flex;
+    gap: 4px;
+    background: var(--card);
+    padding: 5px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .mode-switch button {
+    padding: 9px 22px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: .95rem;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .mode-switch button.active {
+    background: var(--accent);
+    color: #082f49;
+    font-weight: bold;
+  }
+  .quiz-card {
+    width: 100%;
+    max-width: 640px;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+  }
+  .flag-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .flag-wrap img {
+    width: 320px;
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.5);
+    background: #fff;
+  }
+  .target-name {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    margin: 6px 0 2px;
+  }
+  .target-en {
+    text-align: center;
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+  }
+  .speak-btn {
+    border: none;
+    background: var(--card-2);
+    color: var(--accent);
+    font-size: 1rem;
+    padding: 4px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    vertical-align: middle;
+    margin-left: 8px;
+    transition: filter .15s, transform .1s;
+  }
+  .speak-btn:hover { filter: brightness(1.3); transform: scale(1.05); }
+  .options button .opt-en {
+    display: block;
+    font-size: .8rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .options button.correct .opt-en, .options button.wrong .opt-en { color: inherit; opacity: .8; }
+  .question { text-align: center; font-size: 1.15rem; margin-bottom: 20px; color: var(--muted); }
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 480px) { .options:not(.flag-opts) { grid-template-columns: 1fr; } }
+  .options button {
+    padding: 14px 12px;
+    font-size: 1.05rem;
+    font-family: inherit;
+    background: var(--card-2);
+    color: var(--text);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform .1s, border-color .15s, background .15s;
+  }
+  .options.flag-opts button { padding: 10px; }
+  .options.flag-opts img {
+    width: 100%;
+    display: block;
+    border-radius: 8px;
+    background: #fff;
+    pointer-events: none;
+    aspect-ratio: 4 / 2.7;
+    object-fit: contain;
+  }
+  .options button:hover:not(.answered) { border-color: var(--accent); transform: translateY(-2px); }
+  .options button.answered { cursor: default; opacity: .85; }
+  .options button.correct { background: var(--correct); border-color: var(--correct); color: #052e16; font-weight: bold; opacity: 1; }
+  .options button.wrong { background: var(--wrong); border-color: var(--wrong); color: #450a0a; font-weight: bold; opacity: 1; }
+  /* 作答後 hover 選項顯示該國國旗 */
+  .options button { position: relative; }
+  .options button .flag-tip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    padding: 6px;
+    background: #0b1220;
+    border: 1px solid var(--card-2);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.55);
+    display: none;
+    z-index: 60;
+    pointer-events: none;
+  }
+  .options button .flag-tip img {
+    width: 100%;
+    display: block;
+    border-radius: 4px;
+    background: #fff;
+  }
+  /* 電腦（有滑鼠）：hover 顯示 */
+  @media (hover: hover) and (pointer: fine) {
+    .options button.answered:hover .flag-tip { display: block; }
+  }
+  /* 手機（觸控）：點擊切換顯示 */
+  .options button.show-tip .flag-tip { display: block; }
+  .result-banner {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 18px;
+    min-height: 1.6em;
+  }
+  .result-banner.ok { color: var(--correct); }
+  .result-banner.ng { color: var(--wrong); }
+  .info-card {
+    width: 100%;
+    max-width: 640px;
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-top: 18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    animation: slideUp .35s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .info-card h2 { font-size: 1.3rem; margin-bottom: 4px; }
+  .info-card .en-name { color: var(--muted); font-size: .95rem; margin-bottom: 16px; }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px 18px;
+    margin-bottom: 16px;
+  }
+  .info-grid .item {
+    background: var(--card-2);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .info-grid .label { font-size: .78rem; color: var(--muted); margin-bottom: 2px; }
+  .info-grid .value { font-size: .98rem; }
+  .fact {
+    background: rgba(56,189,248,.08);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+    font-size: .95rem;
+    line-height: 1.7;
+  }
+  .fact .label { color: var(--accent); font-weight: bold; margin-right: 6px; }
+  .next-btn {
+    display: block;
+    margin: 22px auto 0;
+    padding: 13px 48px;
+    font-size: 1.1rem;
+    font-family: inherit;
+    font-weight: bold;
+    color: #082f49;
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform .1s, filter .15s;
+  }
+  .next-btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .toolbar .mode-switch { margin-bottom: 0; }
+  .badge {
+    display: inline-block;
+    min-width: 1.4em;
+    padding: 1px 6px;
+    margin-left: 4px;
+    border-radius: 999px;
+    background: var(--wrong);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: bold;
+  }
+  .gallery-btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--text);
+    font-family: inherit;
+    font-size: .95rem;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .gallery-btn:hover { color: var(--accent); }
+  .gallery { width: 100%; max-width: 640px; }
+  .gallery .progress { text-align: center; color: var(--muted); margin-bottom: 4px; }
+  .gallery .continent-title { margin: 18px 4px 10px; font-size: 1.05rem; color: var(--accent); }
+  .gallery .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 10px;
+  }
+  .gallery .card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .gallery .card img {
+    width: 100%;
+    aspect-ratio: 4 / 2.7;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .gallery .card.locked img { filter: grayscale(1) brightness(.55); }
+  .gallery .card .nm { font-size: .72rem; margin-top: 5px; color: var(--text); line-height: 1.3; }
+  .gallery .card.locked .nm { color: var(--muted); }
+  .gallery .card.unlocked { cursor: pointer; transition: outline .1s; }
+  .gallery .card.unlocked:hover { outline: 2px solid var(--accent); }
+  .fact.flag-fact {
+    margin-top: 12px;
+    background: rgba(251,191,36,.08);
+    border-left-color: #fbbf24;
+  }
+  .fact.flag-fact .label { color: #fbbf24; }
+  .confuse {
+    margin-top: 12px;
+    background: rgba(239,68,68,.07);
+    border-left: 4px solid var(--wrong);
+    border-radius: 0 10px 10px 0;
+    padding: 12px 16px;
+  }
+  .confuse-title { color: #f87171; font-weight: bold; font-size: .95rem; margin-bottom: 10px; }
+  .confuse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .confuse-grid .ccard { text-align: center; }
+  .confuse-grid img {
+    width: 100%;
+    aspect-ratio: 4 / 2.7;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 4px;
+  }
+  .confuse-grid .cnm { font-size: .75rem; margin-top: 4px; }
+  .confuse-grid .cen { font-size: .68rem; color: var(--muted); }
+  .confuse-note { font-size: .85rem; color: var(--muted); line-height: 1.7; }
+  /* 名詞小辭典 tooltip */
+  .term {
+    border-bottom: 1px dashed var(--accent);
+    cursor: help;
+    position: relative;
+  }
+  .term:hover::after, .term.show::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(280px, 78vw);
+    background: #0b1220;
+    color: var(--text);
+    border: 1px solid var(--card-2);
+    border-radius: 10px;
+    padding: 9px 13px;
+    font-size: .8rem;
+    line-height: 1.7;
+    white-space: normal;
+    text-align: left;
+    z-index: 60;
+    box-shadow: 0 6px 20px rgba(0,0,0,.55);
+    pointer-events: none;
+  }
+  .term:hover::before, .term.show::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #0b1220;
+    z-index: 61;
+    pointer-events: none;
+  }
+  .confuse.name-confuse {
+    background: rgba(167,139,250,.07);
+    border-left-color: #a78bfa;
+  }
+  .name-confuse .confuse-title { color: #a78bfa; }
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-box {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 26px 30px;
+    width: min(90vw, 380px);
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+  .modal-box h2 { margin-bottom: 16px; font-size: 1.2rem; }
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 11px 4px;
+    border-bottom: 1px solid var(--card-2);
+    cursor: pointer;
+    font-size: .98rem;
+  }
+  .setting-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  /* 設定開關的隱藏規則 */
+  body.no-en .opt-en, body.no-en #target-en-text, body.no-en #info-en { display: none !important; }
+  body.no-speak .speak-btn { display: none !important; }
+  body.no-flagdesign .flag-fact { display: none !important; }
+  body.no-confuse #confuse, body.no-confuse #nconfuse { display: none !important; }
+  .hidden { display: none !important; }
+  footer { margin-top: 28px; color: var(--muted); font-size: .8rem; text-align: center; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌍 認識<span>國家</span></h1>
+  <div class="stats">
+    <div>題數 <b id="stat-total">0</b></div>
+    <div>答對 <b id="stat-correct">0</b></div>
+    <div>連答 <b id="stat-streak">0</b></div>
+    <div>最佳連答 <b id="stat-best">0</b></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="mode-switch">
+    <button id="mode-f2n" class="active">看國旗猜國家</button>
+    <button id="mode-n2f">看國名猜國旗</button>
+  </div>
+  <div class="mode-switch">
+    <button id="src-easy">簡單 60 國</button>
+    <button id="src-all" class="active">全部 197 國</button>
+    <button id="src-review">錯題複習<span class="badge hidden" id="review-count">0</span></button>
+  </div>
+  <button class="gallery-btn" id="gallery-btn">📖 圖鑑</button>
+  <button class="gallery-btn" id="settings-btn" title="設定">⚙️</button>
+</div>
+
+<div class="quiz-card">
+  <div class="flag-wrap" id="flag-wrap"><img id="flag" alt="國旗" /></div>
+  <div class="target-name hidden" id="target-name"></div>
+  <div class="target-en hidden" id="target-en"><span id="target-en-text"></span><button class="speak-btn" id="speak-target" title="唸出英文發音">🔊</button></div>
+  <div class="question" id="question">這是哪一個國家的國旗？</div>
+  <div class="options" id="options"></div>
+  <div class="result-banner" id="banner"></div>
+</div>
+
+<div class="info-card hidden" id="info">
+  <h2 id="info-name"></h2>
+  <div class="en-name"><span id="info-en"></span><button class="speak-btn" id="speak-info" title="唸出英文發音">🔊</button></div>
+  <div class="info-grid">
+    <div class="item"><div class="label">首都</div><div class="value" id="info-capital"></div></div>
+    <div class="item"><div class="label">所在洲</div><div class="value" id="info-continent"></div></div>
+    <div class="item"><div class="label">人口（約）</div><div class="value" id="info-pop"></div></div>
+    <div class="item"><div class="label">主要語言</div><div class="value" id="info-lang"></div></div>
+    <div class="item"><div class="label">貨幣</div><div class="value" id="info-currency"></div></div>
+  </div>
+  <div class="fact"><span class="label">特色</span><span id="info-fact"></span></div>
+  <div class="fact flag-fact"><span class="label">國旗設計</span><span id="info-flagdesign"></span></div>
+  <div class="confuse hidden" id="confuse">
+    <div class="confuse-title">👀 容易混淆的國旗</div>
+    <div class="confuse-grid" id="confuse-grid"></div>
+    <div class="confuse-note" id="confuse-note"></div>
+  </div>
+  <div class="confuse name-confuse hidden" id="nconfuse">
+    <div class="confuse-title">🔤 名字容易混淆</div>
+    <div class="confuse-grid" id="nconfuse-grid"></div>
+    <div class="confuse-note" id="nconfuse-note"></div>
+  </div>
+  <button class="next-btn" id="next">下一題 ➜</button>
+</div>
+
+<div class="modal hidden" id="settings-modal">
+  <div class="modal-box">
+    <h2>⚙️ 設定</h2>
+    <label class="setting-row"><span>選項附註英文國名</span><input type="checkbox" id="set-en"></label>
+    <label class="setting-row"><span>發音按鈕 🔊</span><input type="checkbox" id="set-speak"></label>
+    <label class="setting-row"><span>國旗設計理念</span><input type="checkbox" id="set-flagdesign"></label>
+    <label class="setting-row"><span>容易混淆提示（國旗／名字）</span><input type="checkbox" id="set-confuse"></label>
+    <button class="next-btn" id="settings-close">完成</button>
+  </div>
+</div>
+
+<div class="gallery hidden" id="gallery"></div>
+
+<footer>
+  <span id="country-count"></span><br>
+  國旗圖片來源：flagcdn.com（需要網路連線）
+</footer>
+
+<script src="audio/manifest.js"></script>
+<script>
+const COUNTRIES = [
+  // ===== 亞洲 =====
+  { code:"tw", zh:"臺灣", en:"Taiwan", capital:"臺北", continent:"亞洲", pop:"2,300 萬", lang:"中文（華語）", currency:"新臺幣 (TWD)", flag:"「青天白日滿地紅」：藍色象徵自由與青天，白日十二道光芒代表十二時辰與自強不息，紅色象徵先烈的犧牲。", fact:"半導體產業重鎮，台積電生產全球九成以上的先進製程晶片；夜市文化與珍珠奶茶聞名世界。" },
+  { code:"jp", zh:"日本", en:"Japan", capital:"東京", continent:"亞洲", pop:"1.24 億", lang:"日語", currency:"日圓 (JPY)", flag:"白底紅日「日之丸」，紅色圓形代表太陽，呼應「日出之國」的國名。", fact:"由 6,800 多座島嶼組成，擁有世界最準時的鐵路系統；壽司、動漫與櫻花是最具代表性的文化符號。" },
+  { code:"kr", zh:"南韓（大韓民國）", en:"South Korea", capital:"首爾", continent:"亞洲", pop:"5,100 萬", lang:"韓語", currency:"韓元 (KRW)", flag:"白底象徵和平純潔，中央太極代表陰陽調和，四角的卦象（乾、坤、坎、離）代表天、地、水、火。", fact:"K-pop 與韓劇風靡全球，網路速度長年位居世界前列；泡菜是聯合國認證的無形文化遺產。" },
+  { code:"kp", zh:"北韓（朝鮮）", en:"North Korea", capital:"平壤", continent:"亞洲", pop:"2,600 萬", lang:"韓語", currency:"北韓圓 (KPW)", flag:"紅色象徵革命，紅星代表社會主義，藍條象徵主權與和平，白色象徵純潔。", fact:"世界上最封閉的國家之一，與南韓以北緯 38 度附近的非軍事區（DMZ）相隔。" },
+  { code:"cn", zh:"中國", en:"China", capital:"北京", continent:"亞洲", pop:"14.1 億", lang:"中文（普通話）", currency:"人民幣 (CNY)", flag:"紅色象徵革命，大星代表中國共產黨，四顆小星代表工人、農民、小資產階級與民族資產階級。", fact:"世界人口第二多的國家，萬里長城全長超過 2 萬公里，是史上最大的人造建築工程之一。" },
+  { code:"in", zh:"印度", en:"India", capital:"新德里", continent:"亞洲", pop:"14.3 億", lang:"印地語、英語", currency:"印度盧比 (INR)", flag:"橙色代表勇氣犧牲，白色代表真理和平，綠色代表繁榮；中央的阿育王法輪有 24 根輻條，象徵時時前進。", fact:"2023 年起成為世界人口最多的國家；泰姬瑪哈陵是世界七大奇景之一，寶萊塢每年產出電影數量世界第一。" },
+  { code:"th", zh:"泰國", en:"Thailand", capital:"曼谷", continent:"亞洲", pop:"7,200 萬", lang:"泰語", currency:"泰銖 (THB)", flag:"紅色代表國家民族，白色代表宗教，中央加寬的藍色代表王室。", fact:"東南亞唯一未被歐洲列強殖民過的國家，被稱為「微笑之國」；曼谷的正式全名超過 160 個字母，是世界最長的首都名。" },
+  { code:"vn", zh:"越南", en:"Vietnam", capital:"河內", continent:"亞洲", pop:"9,900 萬", lang:"越南語", currency:"越南盾 (VND)", flag:"紅底象徵革命，金星的五個角代表士、農、工、商、兵五個階層的團結。", fact:"世界第二大咖啡出口國，河粉（Phở）與越式法國麵包深受各國喜愛；下龍灣以石灰岩島嶼景觀列入世界遺產。" },
+  { code:"sg", zh:"新加坡", en:"Singapore", capital:"新加坡", continent:"亞洲", pop:"590 萬", lang:"英語、華語、馬來語、坦米爾語", currency:"新加坡元 (SGD)", flag:"紅色象徵平等友愛，白色象徵純潔美德；新月代表新興國家，五星代表民主、和平、進步、公正、平等。", fact:"面積僅約臺北市 2.6 倍的城市國家，卻是全球金融與航運樞紐；以「花園城市」聞名，法律以嚴格著稱。" },
+  { code:"my", zh:"馬來西亞", en:"Malaysia", capital:"吉隆坡", continent:"亞洲", pop:"3,400 萬", lang:"馬來語", currency:"令吉 (MYR)", flag:"紅白 14 道條紋與 14 角星代表 13 個州加聯邦政府；新月象徵伊斯蘭，黃色是王室的顏色。", fact:"雙峰塔曾是世界最高建築；國土分為馬來半島與婆羅洲兩部分，擁有世界最古老的熱帶雨林之一。" },
+  { code:"id", zh:"印尼", en:"Indonesia", capital:"雅加達", continent:"亞洲", pop:"2.78 億", lang:"印尼語", currency:"印尼盾 (IDR)", flag:"紅白兩色源自 13 世紀滿者伯夷帝國的旗幟，紅色象徵勇氣，白色象徵純潔。", fact:"由超過 17,000 座島嶼組成的世界最大群島國家，也是世界穆斯林人口最多的國家；峇里島是著名度假勝地。" },
+  { code:"ph", zh:"菲律賓", en:"Philippines", capital:"馬尼拉", continent:"亞洲", pop:"1.17 億", lang:"菲律賓語、英語", currency:"披索 (PHP)", flag:"藍色象徵和平，紅色象徵勇氣（戰時會將紅色朝上）；太陽八道光芒代表最早起義的八省，三星代表三大島群。", fact:"由 7,000 多座島嶼組成，是世界最大的護理師輸出國之一；巧克力山與長灘島是知名景點。" },
+  { code:"bn", zh:"汶萊", en:"Brunei", capital:"斯里巴加灣市", continent:"亞洲", pop:"45 萬", lang:"馬來語", currency:"汶萊元 (BND)", flag:"黃色是王室象徵，黑白斜條紀念歷史上的兩位攝政大臣，中央是張著雙手的國徽。", fact:"婆羅洲上靠石油與天然氣致富的蘇丹國，人民不必繳個人所得稅。" },
+  { code:"la", zh:"寮國", en:"Laos", capital:"永珍", continent:"亞洲", pop:"760 萬", lang:"寮語", currency:"基普 (LAK)", flag:"紅色象徵革命鮮血，藍色象徵湄公河與繁榮，白色圓形代表湄公河上升起的明月與國家團結。", fact:"東南亞唯一的內陸國，被稱為「萬象之邦」，湄公河貫穿全境。" },
+  { code:"mm", zh:"緬甸", en:"Myanmar", capital:"奈比多", continent:"亞洲", pop:"5,400 萬", lang:"緬甸語", currency:"緬元 (MMK)", flag:"黃色象徵團結，綠色象徵和平與自然，紅色象徵勇氣，中央大白星代表聯邦永續。", fact:"蒲甘古城平原上矗立著兩千多座佛塔遺跡，是世界重要的佛教文化地景。" },
+  { code:"kh", zh:"柬埔寨", en:"Cambodia", capital:"金邊", continent:"亞洲", pop:"1,700 萬", lang:"高棉語", currency:"瑞爾 (KHR)", flag:"紅藍底色中央繪有吳哥窟，是世界少數以建築物為主角的國旗，象徵民族的文化根源。", fact:"吳哥窟是世界最大的宗教建築群，也是國旗上唯一出現建築物的國家之一。" },
+  { code:"tl", zh:"東帝汶", en:"Timor-Leste", capital:"帝力", continent:"亞洲", pop:"130 萬", lang:"德頓語、葡萄牙語", currency:"美元 (USD)", flag:"紅色象徵殖民壓迫的歷史，黑色三角代表需要克服的蒙昧，黃色箭頭代表獨立的奮鬥，白星是指引希望的光。", fact:"2002 年獨立，是 21 世紀第一個誕生的新國家。" },
+  { code:"bd", zh:"孟加拉", en:"Bangladesh", capital:"達卡", continent:"亞洲", pop:"1.7 億", lang:"孟加拉語", currency:"塔卡 (BDT)", flag:"深綠象徵大地與活力，紅色圓形代表升起的太陽與獨立戰爭的犧牲；圓心稍偏旗桿側，讓飄揚時看起來置中。", fact:"世界人口密度最高的大國之一，成衣出口量位居世界第二。" },
+  { code:"pk", zh:"巴基斯坦", en:"Pakistan", capital:"伊斯蘭馬巴德", continent:"亞洲", pop:"2.4 億", lang:"烏爾都語、英語", currency:"巴基斯坦盧比 (PKR)", flag:"深綠與新月星象徵伊斯蘭，旗桿側的白色直條代表國內的宗教少數族群。", fact:"世界第五人口大國，世界第二高峰 K2（8,611 公尺）位於境內喀喇崑崙山脈。" },
+  { code:"lk", zh:"斯里蘭卡", en:"Sri Lanka", capital:"斯里賈亞瓦德納普拉科特", continent:"亞洲", pop:"2,200 萬", lang:"僧伽羅語、坦米爾語", currency:"斯里蘭卡盧比 (LKR)", flag:"金獅持劍代表僧伽羅民族與勇氣，四片菩提葉象徵佛教慈悲，橙綠兩條代表坦米爾與穆斯林族群。", fact:"被稱為「印度洋的眼淚」，錫蘭紅茶的產地，肉桂的原鄉。" },
+  { code:"mv", zh:"馬爾地夫", en:"Maldives", capital:"馬列", continent:"亞洲", pop:"52 萬", lang:"迪維希語", currency:"拉菲亞 (MVR)", flag:"紅色象徵勇氣，綠色矩形代表和平與棕櫚樹，白色新月象徵伊斯蘭信仰。", fact:"由約 1,200 座珊瑚島組成，平均海拔僅 1.5 公尺，是世界地勢最低的國家。" },
+  { code:"bt", zh:"不丹", en:"Bhutan", capital:"辛布", continent:"亞洲", pop:"78 萬", lang:"宗喀語", currency:"努爾特魯姆 (BTN)", flag:"黃橙兩色分別代表王權與佛教，中央白龍是「雷龍之國」的象徵，龍爪握著寶珠代表財富。", fact:"以「國民幸福總值（GNH）」取代 GDP 作為施政指標而聞名的喜馬拉雅山國。" },
+  { code:"np", zh:"尼泊爾", en:"Nepal", capital:"加德滿都", continent:"亞洲", pop:"3,000 萬", lang:"尼泊爾語", currency:"尼泊爾盧比 (NPR)", flag:"世界唯一的雙三角旗，源自兩面三角旗的結合；月亮代表王室、太陽代表人民，也祝願國家與日月同壽。", fact:"世界最高峰聖母峰（8,849 公尺）位於與中國的邊界上；國旗是世界唯一非四邊形的國旗。" },
+  { code:"af", zh:"阿富汗", en:"Afghanistan", capital:"喀布爾", continent:"亞洲", pop:"4,100 萬", lang:"普什圖語、達利語", currency:"阿富汗尼 (AFN)", flag:"黑、紅、綠分別代表過去的苦難、獨立的犧牲與未來的希望，中央為清真寺國徽（歷代政權版本多次更動）。", fact:"地處中亞十字路口，興都庫什山脈貫穿，開伯爾山口自古是兵家必爭之地。" },
+  { code:"ir", zh:"伊朗", en:"Iran", capital:"德黑蘭", continent:"亞洲", pop:"8,900 萬", lang:"波斯語", currency:"里亞爾 (IRR)", flag:"綠白紅象徵伊斯蘭、和平與勇氣；中央是風格化的「阿拉」字樣，紅綠邊緣以庫法體重複書寫「真主至大」22 次。", fact:"古波斯帝國所在地，波斯地毯、藏紅花與波斯波利斯遺跡聞名於世。" },
+  { code:"iq", zh:"伊拉克", en:"Iraq", capital:"巴格達", continent:"亞洲", pop:"4,500 萬", lang:"阿拉伯語、庫德語", currency:"第納爾 (IQD)", flag:"紅白黑泛阿拉伯三色，綠色的「真主至大」以阿拉伯書法寫在白條中央。", fact:"兩河流域美索不達米亞文明的發源地，巴比倫古城與空中花園傳說的所在。" },
+  { code:"sy", zh:"敘利亞", en:"Syria", capital:"大馬士革", continent:"亞洲", pop:"2,300 萬", lang:"阿拉伯語", currency:"敘利亞鎊 (SYP)", flag:"紅白黑泛阿拉伯三色，兩顆綠星原代表敘利亞與埃及的聯合（歷史上的阿拉伯聯合共和國）。", fact:"首都大馬士革是世界上持續有人居住最古老的城市之一，歷史超過 4,000 年。" },
+  { code:"jo", zh:"約旦", en:"Jordan", capital:"安曼", continent:"亞洲", pop:"1,100 萬", lang:"阿拉伯語", currency:"第納爾 (JOD)", flag:"黑白綠三色代表歷代阿拉伯王朝，紅色三角象徵阿拉伯大起義，白色七角星代表可蘭經開篇的七節經文。", fact:"玫瑰色的岩石古城佩特拉是世界新七大奇景之一，也是電影《法櫃奇兵》場景。" },
+  { code:"lb", zh:"黎巴嫩", en:"Lebanon", capital:"貝魯特", continent:"亞洲", pop:"550 萬", lang:"阿拉伯語", currency:"黎巴嫩鎊 (LBP)", flag:"紅色象徵犧牲，白色象徵和平，中央的黎巴嫩雪松數千年來都是這片土地的象徵。", fact:"貝魯特曾被譽為「中東巴黎」，國旗中央的黎巴嫩雪松已是數千年的國家象徵。" },
+  { code:"il", zh:"以色列", en:"Israel", capital:"耶路撒冷", continent:"亞洲", pop:"980 萬", lang:"希伯來語", currency:"新謝克爾 (ILS)", flag:"白底藍條仿照猶太教祈禱披巾（Tallit），中央是大衛之星。", fact:"被稱為「新創之國」，人均新創公司數世界第一；死海是地表最低點，湖水鹽度高到人可以漂浮在水面。" },
+  { code:"ps", zh:"巴勒斯坦", en:"Palestine", capital:"拉姆安拉（行政中心）", continent:"亞洲", pop:"550 萬", lang:"阿拉伯語", currency:"新謝克爾 (ILS)", flag:"黑白綠泛阿拉伯三色加紅色三角，源自 1916 年阿拉伯大起義的旗幟。", fact:"由約旦河西岸與加薩走廊組成，2012 年成為聯合國觀察員國。" },
+  { code:"sa", zh:"沙烏地阿拉伯", en:"Saudi Arabia", capital:"利雅德", continent:"亞洲", pop:"3,600 萬", lang:"阿拉伯語", currency:"里亞爾 (SAR)", flag:"綠色象徵伊斯蘭，白色阿拉伯文是清真言「萬物非主，唯有真主」，下方寶劍象徵正義與力量。", fact:"世界最大的石油出口國之一，伊斯蘭教聖城麥加與麥地那都位於境內，每年吸引數百萬信徒朝聖。" },
+  { code:"ae", zh:"阿拉伯聯合大公國", en:"United Arab Emirates", capital:"阿布達比", continent:"亞洲", pop:"940 萬", lang:"阿拉伯語", currency:"迪拉姆 (AED)", flag:"紅、綠、白、黑泛阿拉伯四色，分別聯想到勇氣、繁榮、和平與堅毅。", fact:"杜拜的哈里發塔高 828 公尺，是世界最高建築；短短數十年從沙漠漁村發展為國際金融與觀光中心。" },
+  { code:"kw", zh:"科威特", en:"Kuwait", capital:"科威特市", continent:"亞洲", pop:"430 萬", lang:"阿拉伯語", currency:"第納爾 (KWD)", flag:"綠白紅黑泛阿拉伯色彩：綠為沃土、白為純潔、紅為勇士之血、黑色梯形為戰場。", fact:"波斯灣畔的石油富國，科威特第納爾是世界幣值最高的貨幣。" },
+  { code:"qa", zh:"卡達", en:"Qatar", capital:"杜哈", continent:"亞洲", pop:"270 萬", lang:"阿拉伯語", currency:"里亞爾 (QAR)", flag:"栗紫色與白色以九個鋸齒相接，代表卡達是波斯灣「和解九國」的第九個成員；紫紅色源自當地古代出產的染料。", fact:"人均 GDP 位居世界最前列，2022 年成為首個主辦世界盃足球賽的中東國家。" },
+  { code:"bh", zh:"巴林", en:"Bahrain", capital:"麥納瑪", continent:"亞洲", pop:"150 萬", lang:"阿拉伯語", currency:"第納爾 (BHD)", flag:"紅白以五個鋸齒相接，五個白色鋸齒代表伊斯蘭五功。", fact:"波斯灣島國，古代以採珍珠聞名，現為中東金融中心並主辦 F1 大獎賽。" },
+  { code:"om", zh:"阿曼", en:"Oman", capital:"馬斯開特", continent:"亞洲", pop:"460 萬", lang:"阿拉伯語", currency:"里亞爾 (OMR)", flag:"紅色是傳統旗色，白色象徵和平，綠色代表北部綠山與農業，旗桿側是彎刀與匕首組成的國徽。", fact:"乳香的故鄉，古代海上絲路與辛巴達傳說的重要舞台。" },
+  { code:"ye", zh:"葉門", en:"Yemen", capital:"沙那", continent:"亞洲", pop:"3,400 萬", lang:"阿拉伯語", currency:"里亞爾 (YER)", flag:"紅白黑泛阿拉伯三色：紅為革命、白為光明未來、黑為過去的黑暗。", fact:"「摩卡咖啡」之名源自其古老的摩卡港，沙那老城是世界遺產。" },
+  { code:"tr", zh:"土耳其", en:"Türkiye", capital:"安卡拉", continent:"亞洲", pop:"8,500 萬", lang:"土耳其語", currency:"里拉 (TRY)", flag:"紅底新月與星是鄂圖曼帝國留下的象徵，傳說源自戰場血泊中映照出的月與星。", fact:"國土橫跨歐亞兩洲，伊斯坦堡是世界唯一橫跨兩大洲的大城市；熱氣球勝地卡帕多奇亞舉世聞名。" },
+  { code:"cy", zh:"賽普勒斯", en:"Cyprus", capital:"尼古西亞", continent:"亞洲", pop:"130 萬", lang:"希臘語、土耳其語", currency:"歐元 (EUR)", flag:"白底繪有銅色的國土輪廓（國名字源即是「銅」），下方兩枝橄欖枝象徵希臘與土耳其兩族群的和平。", fact:"地中海第三大島，首都尼古西亞是世界僅存被分隔為兩半的首都。" },
+  { code:"ge", zh:"喬治亞", en:"Georgia", capital:"提比里斯", continent:"亞洲", pop:"370 萬", lang:"喬治亞語", currency:"拉里 (GEL)", flag:"白底紅色大十字加四個小十字（耶路撒冷十字），源自中世紀喬治亞王國的軍旗。", fact:"擁有約 8,000 年的釀酒歷史，被認為是葡萄酒的發源地。" },
+  { code:"am", zh:"亞美尼亞", en:"Armenia", capital:"葉里溫", continent:"亞洲", pop:"280 萬", lang:"亞美尼亞語", currency:"德拉姆 (AMD)", flag:"紅色紀念民族的犧牲，藍色象徵天空與希望，橙色代表勇氣與土地的富饒。", fact:"西元 301 年成為世界第一個以基督教為國教的國家。" },
+  { code:"az", zh:"亞塞拜然", en:"Azerbaijan", capital:"巴庫", continent:"亞洲", pop:"1,000 萬", lang:"亞塞拜然語", currency:"馬納特 (AZN)", flag:"藍色代表突厥民族，紅色代表現代化進步，綠色代表伊斯蘭；八角星象徵突厥各支族。", fact:"被稱為「火之國」，巴庫近郊有因天然氣滲出而終年燃燒的火焰山。" },
+  { code:"kz", zh:"哈薩克", en:"Kazakhstan", capital:"阿斯塔納", continent:"亞洲", pop:"1,900 萬", lang:"哈薩克語、俄語", currency:"堅戈 (KZT)", flag:"天藍色象徵天空與突厥民族，金色太陽與草原雄鷹代表自由，旗桿側是哈薩克傳統紋飾。", fact:"世界面積最大的內陸國；人類史上第一次載人太空飛行從境內的拜科努爾太空發射場升空。" },
+  { code:"uz", zh:"烏茲別克", en:"Uzbekistan", capital:"塔什干", continent:"亞洲", pop:"3,500 萬", lang:"烏茲別克語", currency:"索姆 (UZS)", flag:"藍色代表天空與帖木兒帝國，白色象徵和平，綠色象徵自然；12 顆星代表 12 個月份，新月象徵國家新生。", fact:"絲路古城撒馬爾罕與布哈拉皆為世界遺產，藍色圓頂建築美不勝收。" },
+  { code:"tm", zh:"土庫曼", en:"Turkmenistan", capital:"阿什哈巴特", continent:"亞洲", pop:"650 萬", lang:"土庫曼語", currency:"馬納特 (TMT)", flag:"綠底新月星象徵伊斯蘭與光明未來，旗桿側的地毯紋飾帶是五大部族的傳統圖案，是世界最繁複的國旗之一。", fact:"沙漠中的「地獄之門」天然氣坑已持續燃燒超過 50 年。" },
+  { code:"kg", zh:"吉爾吉斯", en:"Kyrgyzstan", capital:"比斯凱克", continent:"亞洲", pop:"700 萬", lang:"吉爾吉斯語、俄語", currency:"索姆 (KGS)", flag:"紅底金色太陽有 40 道光芒，代表傳說中英雄瑪納斯統一的 40 個部族；太陽中央是蒙古包天窗（tunduk）的圖案。", fact:"約 94% 的國土為山地，天山山脈貫穿全境，遊牧文化保存完整。" },
+  { code:"tj", zh:"塔吉克", en:"Tajikistan", capital:"杜尚別", continent:"亞洲", pop:"1,000 萬", lang:"塔吉克語", currency:"索莫尼 (TJS)", flag:"紅白綠三色代表國家、純潔與自然，中央金色王冠與七星象徵主權與圓滿。", fact:"帕米爾高原「世界屋脊」所在，最高峰海拔超過 7,400 公尺。" },
+  { code:"mn", zh:"蒙古", en:"Mongolia", capital:"烏蘭巴托", continent:"亞洲", pop:"340 萬", lang:"蒙古語", currency:"圖格里克 (MNT)", flag:"紅藍紅三條，藍色是遊牧民族敬仰的永恆蒼天；旗桿側的金色「索永布」符號集火、日、月、陰陽於一身。", fact:"世界人口密度最低的國家之一，馬匹數量比人還多；成吉思汗建立的蒙古帝國曾是史上疆域最大的陸上帝國。" },
+  // ===== 歐洲 =====
+  { code:"fr", zh:"法國", en:"France", capital:"巴黎", continent:"歐洲", pop:"6,800 萬", lang:"法語", currency:"歐元 (EUR)", flag:"藍白紅三色旗源自法國大革命，象徵自由、平等、博愛；藍紅是巴黎市的顏色，白色是波旁王室的顏色。", fact:"世界最多觀光客造訪的國家，艾菲爾鐵塔每晚燈光秀吸引無數遊客；擁有超過 1,500 種起司。" },
+  { code:"de", zh:"德國", en:"Germany", capital:"柏林", continent:"歐洲", pop:"8,400 萬", lang:"德語", currency:"歐元 (EUR)", flag:"黑紅金三色源自 19 世紀爭取統一與自由的運動，如今象徵德意志的統一與民主。", fact:"歐洲最大經濟體，以汽車工業（賓士、BMW、福斯）聞名；高速公路部分路段沒有速限。" },
+  { code:"gb", zh:"英國", en:"United Kingdom", capital:"倫敦", continent:"歐洲", pop:"6,700 萬", lang:"英語", currency:"英鎊 (GBP)", flag:"「聯合傑克」由英格蘭聖喬治十字、蘇格蘭聖安德魯十字與愛爾蘭聖派翠克十字三面旗疊加而成。", fact:"由英格蘭、蘇格蘭、威爾斯與北愛爾蘭組成；倫敦地鐵是世界最古老的地下鐵路系統（1863 年啟用）。" },
+  { code:"it", zh:"義大利", en:"Italy", capital:"羅馬", continent:"歐洲", pop:"5,900 萬", lang:"義大利語", currency:"歐元 (EUR)", flag:"綠白紅三色仿法國三色旗而生，一說綠色代表國土、白色代表阿爾卑斯山的雪、紅色代表愛國者的熱血。", fact:"擁有世界最多的聯合國世界遺產；披薩與義大利麵的發源地，羅馬競技場已有近 2,000 年歷史。" },
+  { code:"es", zh:"西班牙", en:"Spain", capital:"馬德里", continent:"歐洲", pop:"4,800 萬", lang:"西班牙語", currency:"歐元 (EUR)", flag:"紅黃「血與金」是傳統王國旗色；國徽集合卡斯提亞、萊昂、亞拉岡等古王國的紋章，兩側是海克力斯之柱。", fact:"佛朗明哥舞與鬥牛的故鄉；巴塞隆納的聖家堂自 1882 年動工至今仍在興建中。" },
+  { code:"pt", zh:"葡萄牙", en:"Portugal", capital:"里斯本", continent:"歐洲", pop:"1,000 萬", lang:"葡萄牙語", currency:"歐元 (EUR)", flag:"綠色象徵希望，紅色紀念革命；渾天儀紀念大航海時代，盾徽上的五個小盾傳說代表擊敗的五位摩爾人國王。", fact:"大航海時代的先驅，葡萄牙語因此成為 2 億多人的母語；蛋塔（Pastel de Nata）的發源地。" },
+  { code:"nl", zh:"荷蘭", en:"Netherlands", capital:"阿姆斯特丹", continent:"歐洲", pop:"1,800 萬", lang:"荷蘭語", currency:"歐元 (EUR)", flag:"紅白藍是世界最早的三色旗之一，源自奧倫治親王的旗幟——原本最上層是橙色，因染料易褪色改為紅色。", fact:"約四分之一國土低於海平面，以風車、鬱金香與腳踏車聞名——腳踏車數量比人口還多。" },
+  { code:"be", zh:"比利時", en:"Belgium", capital:"布魯塞爾", continent:"歐洲", pop:"1,170 萬", lang:"荷蘭語、法語、德語", currency:"歐元 (EUR)", flag:"黑黃紅三色取自布拉班特公國的紋章：黑底上金色獅子、紅色爪舌。", fact:"歐盟與北約總部所在地；以巧克力、鬆餅與數百種精釀啤酒聞名，薯條其實源自比利時。" },
+  { code:"lu", zh:"盧森堡", en:"Luxembourg", capital:"盧森堡市", continent:"歐洲", pop:"66 萬", lang:"盧森堡語、法語、德語", currency:"歐元 (EUR)", flag:"紅白藍三色源自大公家徽；與荷蘭國旗幾乎相同，但盧森堡的藍是較淺的天藍色。", fact:"人均 GDP 世界最高的國家之一，2020 年成為世界第一個全國大眾運輸免費的國家。" },
+  { code:"ch", zh:"瑞士", en:"Switzerland", capital:"伯恩", continent:"歐洲", pop:"880 萬", lang:"德語、法語、義大利語、羅曼什語", currency:"瑞士法郎 (CHF)", flag:"紅底白十字源自中世紀施維茨州的軍旗；紅十字會的標誌正是它的顏色反轉，向創辦人的祖國致敬。", fact:"永久中立國，以鐘錶、巧克力與阿爾卑斯山景聞名；國旗是世界僅有的兩面正方形國旗之一。" },
+  { code:"at", zh:"奧地利", en:"Austria", capital:"維也納", continent:"歐洲", pop:"910 萬", lang:"德語", currency:"歐元 (EUR)", flag:"紅白紅橫條傳說源自巴本堡公爵浴血奮戰後，解下腰帶露出的白痕，是世界最古老的國旗圖樣之一。", fact:"音樂之都維也納孕育了莫札特、貝多芬與舒伯特；維也納多次被評為世界最宜居城市。" },
+  { code:"li", zh:"列支敦斯登", en:"Liechtenstein", capital:"瓦都茲", continent:"歐洲", pop:"4 萬", lang:"德語", currency:"瑞士法郎 (CHF)", flag:"藍紅兩色源自 18 世紀王室僕從制服；金色王冠是 1937 年加上的——因為前一年奧運才發現與海地國旗完全相同。", fact:"夾在瑞士與奧地利之間的「雙重內陸國」，是世界主要的假牙生產國之一。" },
+  { code:"mc", zh:"摩納哥", en:"Monaco", capital:"摩納哥", continent:"歐洲", pop:"3.9 萬", lang:"法語", currency:"歐元 (EUR)", flag:"紅白兩色是格里馬爾迪家族七百年來的家徽顏色；與印尼國旗圖樣相同，僅長寬比例不同。", fact:"世界第二小的國家，以蒙地卡羅賭場與 F1 摩納哥街道大獎賽聞名，百萬富翁密度世界第一。" },
+  { code:"ad", zh:"安道爾", en:"Andorra", capital:"安道爾城", continent:"歐洲", pop:"8 萬", lang:"加泰隆尼亞語", currency:"歐元 (EUR)", flag:"藍黃紅三色結合了法國的藍紅與西班牙的黃紅，反映法西兩國共治的歷史，中央是國徽。", fact:"庇里牛斯山中的小國，由法國總統與西班牙烏格爾主教共同擔任國家元首。" },
+  { code:"sm", zh:"聖馬利諾", en:"San Marino", capital:"聖馬利諾市", continent:"歐洲", pop:"3.4 萬", lang:"義大利語", currency:"歐元 (EUR)", flag:"白藍兩色代表和平與提塔諾山上的天空，中央國徽繪有山頂的三座塔樓。", fact:"相傳建國於西元 301 年，是世界現存最古老的共和國。" },
+  { code:"va", zh:"梵蒂岡", en:"Vatican City", capital:"梵蒂岡城", continent:"歐洲", pop:"約 800 人", lang:"義大利語、拉丁語", currency:"歐元 (EUR)", flag:"金白兩色是聖彼得「天國鑰匙」的顏色，徽章是交叉的金銀鑰匙與教宗三重冠。", fact:"世界面積最小的國家（0.44 平方公里），天主教會的中心，聖彼得大教堂與西斯汀禮拜堂所在。" },
+  { code:"mt", zh:"馬爾他", en:"Malta", capital:"瓦勒他", continent:"歐洲", pop:"54 萬", lang:"馬爾他語、英語", currency:"歐元 (EUR)", flag:"白紅兩色傳說源自諾曼伯爵的旗幟；左上角的喬治十字是二戰時英王授予全體馬爾他人民的英勇勳章。", fact:"地中海島國，境內巨石神殿比埃及金字塔還古老，是世界最早的獨立石造建築之一。" },
+  { code:"se", zh:"瑞典", en:"Sweden", capital:"斯德哥爾摩", continent:"歐洲", pop:"1,050 萬", lang:"瑞典語", currency:"瑞典克朗 (SEK)", flag:"藍底金黃十字取自瑞典王室紋章「藍底三金冠」的配色，十字橫臂偏向旗桿側是北歐十字的共同特徵。", fact:"IKEA、Spotify 與諾貝爾獎的故鄉；北部夏季有永晝現象，冬季則可欣賞極光。" },
+  { code:"no", zh:"挪威", en:"Norway", capital:"奧斯陸", continent:"歐洲", pop:"550 萬", lang:"挪威語", currency:"挪威克朗 (NOK)", flag:"在丹麥紅白旗的基礎上加入藍色十字，湊齊象徵自由的紅白藍三色。", fact:"以壯麗峽灣聞名，電動車普及率世界第一；主權基金規模全球最大，人均財富名列前茅。" },
+  { code:"fi", zh:"芬蘭", en:"Finland", capital:"赫爾辛基", continent:"歐洲", pop:"560 萬", lang:"芬蘭語、瑞典語", currency:"歐元 (EUR)", flag:"白底藍十字：藍色是千湖之國的湖泊與天空，白色是冬季的雪原。", fact:"連續多年被評為「世界最幸福國家」；三溫暖（Sauna）文化的發源地，全國約有 300 萬座三溫暖。" },
+  { code:"dk", zh:"丹麥", en:"Denmark", capital:"哥本哈根", continent:"歐洲", pop:"590 萬", lang:"丹麥語", currency:"丹麥克朗 (DKK)", flag:"「丹尼布洛」紅底白十字，傳說 1219 年自天而降助丹麥軍反敗為勝，是金氏世界紀錄認證最古老的現行國旗。", fact:"樂高（LEGO）與安徒生童話的故鄉；「Hygge」的舒適生活哲學聞名全球，國旗是世界最古老的國旗。" },
+  { code:"is", zh:"冰島", en:"Iceland", capital:"雷克雅維克", continent:"歐洲", pop:"39 萬", lang:"冰島語", currency:"冰島克朗 (ISK)", flag:"藍底白邊紅十字：藍是山與海、白是冰雪、紅是火山岩漿——一面旗濃縮「冰與火之國」。", fact:"「冰與火之國」，同時擁有冰川與活火山；幾乎全部電力來自地熱與水力等再生能源。" },
+  { code:"ie", zh:"愛爾蘭", en:"Ireland", capital:"都柏林", continent:"歐洲", pop:"530 萬", lang:"英語、愛爾蘭語", currency:"歐元 (EUR)", flag:"綠白橙三色：綠色代表天主教徒（蓋爾傳統），橙色代表新教徒，中間的白色是兩者之間的和平。", fact:"被稱為「翡翠島」，聖派翠克節的綠色慶典風靡全球；許多科技巨頭的歐洲總部設於都柏林。" },
+  { code:"gr", zh:"希臘", en:"Greece", capital:"雅典", continent:"歐洲", pop:"1,040 萬", lang:"希臘語", currency:"歐元 (EUR)", flag:"藍白九道條紋據說對應希臘語「不自由毋寧死」的九個音節，左上十字象徵東正教信仰。", fact:"西方文明與奧林匹克運動會的發源地，雅典衛城已有 2,500 年歷史；擁有約 6,000 座島嶼。" },
+  { code:"pl", zh:"波蘭", en:"Poland", capital:"華沙", continent:"歐洲", pop:"3,700 萬", lang:"波蘭語", currency:"茲羅提 (PLN)", flag:"白紅兩色源自波蘭國徽——紅底白鷹；上白下紅。", fact:"天文學家哥白尼與音樂家蕭邦的祖國；華沙老城在二戰後依照畫作完整重建，列入世界遺產。" },
+  { code:"cz", zh:"捷克", en:"Czechia", capital:"布拉格", continent:"歐洲", pop:"1,080 萬", lang:"捷克語", currency:"捷克克朗 (CZK)", flag:"白紅是波希米亞的傳統色，藍色三角形在 1920 年加入以區別波蘭，也代表斯洛伐克（分家後仍沿用至今）。", fact:"人均啤酒消費量世界第一；布拉格老城與查理大橋保存完好，被稱為「百塔之城」。" },
+  { code:"sk", zh:"斯洛伐克", en:"Slovakia", capital:"布拉提斯拉瓦", continent:"歐洲", pop:"540 萬", lang:"斯洛伐克語", currency:"歐元 (EUR)", flag:"白藍紅泛斯拉夫三色，加上雙十字國徽（三座山丘上的洛林雙十字）以區別俄羅斯與斯洛維尼亞。", fact:"首都布拉提斯拉瓦緊鄰奧地利與匈牙利邊界，是世界少數與兩國接壤的首都；城堡數量密度極高。" },
+  { code:"hu", zh:"匈牙利", en:"Hungary", capital:"布達佩斯", continent:"歐洲", pop:"960 萬", lang:"匈牙利語", currency:"福林 (HUF)", flag:"紅白綠三色：紅色象徵力量，白色象徵忠誠，綠色象徵希望。", fact:"布達佩斯由多瑙河兩岸的「布達」與「佩斯」合併而成，溫泉浴場文化已有數百年歷史；魔術方塊的發明地。" },
+  { code:"si", zh:"斯洛維尼亞", en:"Slovenia", capital:"盧比安納", continent:"歐洲", pop:"210 萬", lang:"斯洛維尼亞語", currency:"歐元 (EUR)", flag:"白藍紅泛斯拉夫三色，左上國徽繪有最高峰特里格拉夫山、海洋波紋與三顆金星。", fact:"布萊德湖與波斯托伊納鐘乳石洞聞名，養蜂文化被列為無形文化遺產。" },
+  { code:"hr", zh:"克羅埃西亞", en:"Croatia", capital:"札格瑞布", continent:"歐洲", pop:"390 萬", lang:"克羅埃西亞語", currency:"歐元 (EUR)", flag:"紅白藍泛斯拉夫三色，中央的紅白棋盤格盾徽是克羅埃西亞數百年來的象徵。", fact:"亞得里亞海畔的千島之國，杜布羅夫尼克是《權力遊戲》君臨城的拍攝地；領帶（cravat）的發源地。" },
+  { code:"ba", zh:"波士尼亞與赫塞哥維納", en:"Bosnia and Herzegovina", capital:"塞拉耶佛", continent:"歐洲", pop:"320 萬", lang:"波士尼亞語、塞爾維亞語、克羅埃西亞語", currency:"可兌換馬克 (BAM)", flag:"藍底金色三角形代表國土形狀與三個主要民族，白星沿斜邊排列，配色刻意呼應歐盟旗。", fact:"1914 年塞拉耶佛事件成為第一次世界大戰的導火線；莫斯塔爾古橋是世界遺產。" },
+  { code:"rs", zh:"塞爾維亞", en:"Serbia", capital:"貝爾格勒", continent:"歐洲", pop:"660 萬", lang:"塞爾維亞語", currency:"第納爾 (RSD)", flag:"紅藍白泛斯拉夫三色（順序與俄羅斯相反），旗面偏左是塞爾維亞雙頭鷹國徽。", fact:"首都貝爾格勒位於多瑙河與薩瓦河交會處，是網球名將喬科維奇的祖國。" },
+  { code:"me", zh:"蒙特內哥羅", en:"Montenegro", capital:"波德里察", continent:"歐洲", pop:"62 萬", lang:"蒙特內哥羅語", currency:"歐元 (EUR)", flag:"紅底金邊，中央雙頭鷹是彼得洛維奇王朝的紋章，鷹胸的盾牌上有金色獅子。", fact:"國名意為「黑色的山」，科托爾峽灣被稱為歐洲最南端的「峽灣」美景。" },
+  { code:"mk", zh:"北馬其頓", en:"North Macedonia", capital:"史高比耶", continent:"歐洲", pop:"180 萬", lang:"馬其頓語", currency:"第納爾 (MKD)", flag:"紅底金色太陽放射八道光芒，象徵國歌所唱的「自由的新太陽」。", fact:"奧赫里德湖是歐洲最古老、最深的湖泊之一；德蕾莎修女出生於史高比耶。" },
+  { code:"al", zh:"阿爾巴尼亞", en:"Albania", capital:"地拉那", continent:"歐洲", pop:"280 萬", lang:"阿爾巴尼亞語", currency:"列克 (ALL)", flag:"紅底黑色雙頭鷹源自 15 世紀民族英雄斯坎德培的印章，阿爾巴尼亞人自稱「鷹之子民」。", fact:"冷戰時期在全國修建了約 17 萬座碉堡，如今成為獨特地景。" },
+  { code:"xk", zh:"科索沃", en:"Kosovo", capital:"普里斯提納", continent:"歐洲", pop:"180 萬", lang:"阿爾巴尼亞語、塞爾維亞語", currency:"歐元 (EUR)", flag:"藍底上是金色的國土輪廓，上方六顆白星代表六大族群；設計刻意保持中立，不偏向任一民族的傳統符號。", fact:"2008 年宣布獨立，是歐洲最年輕的國家之一，人口平均年齡也是歐洲最年輕。" },
+  { code:"bg", zh:"保加利亞", en:"Bulgaria", capital:"索菲亞", continent:"歐洲", pop:"640 萬", lang:"保加利亞語", currency:"列弗 (BGN)", flag:"白綠紅三色：白為和平、綠為沃土與森林、紅為勇氣。", fact:"「玫瑰谷」供應全球大部分的玫瑰精油；點頭表示「不」、搖頭表示「是」的習慣與多數國家相反。" },
+  { code:"ro", zh:"羅馬尼亞", en:"Romania", capital:"布加勒斯特", continent:"歐洲", pop:"1,900 萬", lang:"羅馬尼亞語", currency:"列伊 (RON)", flag:"藍黃紅三色源自瓦拉幾亞與摩爾達維亞兩公國的傳統色；與查德國旗幾乎完全相同。", fact:"外西凡尼亞的布蘭城堡是「吸血鬼德古拉」傳說的靈感來源。" },
+  { code:"md", zh:"摩爾多瓦", en:"Moldova", capital:"奇西瑙", continent:"歐洲", pop:"250 萬", lang:"羅馬尼亞語", currency:"列伊 (MDL)", flag:"藍黃紅三色與羅馬尼亞同源，中央加上國徽——啣著十字的金鷹與原牛頭盾牌。", fact:"擁有世界最大的酒窖——地下酒窖隧道總長超過 200 公里，藏酒數百萬瓶。" },
+  { code:"ua", zh:"烏克蘭", en:"Ukraine", capital:"基輔", continent:"歐洲", pop:"3,700 萬", lang:"烏克蘭語", currency:"格里夫納 (UAH)", flag:"上藍下黃：藍天之下的金色麥田，把「歐洲糧倉」的地景直接畫在旗上。", fact:"歐洲面積最大的完整位於歐洲的國家，肥沃的黑土帶使其成為世界重要糧倉，被稱為「歐洲麵包籃」。" },
+  { code:"by", zh:"白俄羅斯", en:"Belarus", capital:"明斯克", continent:"歐洲", pop:"920 萬", lang:"白俄羅斯語、俄語", currency:"白俄羅斯盧布 (BYN)", flag:"紅綠兩色沿自蘇聯時期的旗幟（移除鐮刀鎚子），旗桿側是傳統刺繡紋樣，象徵民族文化。", fact:"境內的比亞沃維耶札原始森林是歐洲僅存最大的原始森林之一，歐洲野牛的家園。" },
+  { code:"ru", zh:"俄羅斯", en:"Russia", capital:"莫斯科", continent:"歐洲/亞洲", pop:"1.44 億", lang:"俄語", currency:"盧布 (RUB)", flag:"白藍紅三色據說是彼得大帝仿荷蘭三色旗設計，後來成為「泛斯拉夫色彩」的源頭，影響許多斯拉夫國家。", fact:"世界面積最大的國家，橫跨 11 個時區；西伯利亞鐵路全長 9,289 公里，是世界最長的鐵路線。" },
+  { code:"lt", zh:"立陶宛", en:"Lithuania", capital:"維爾紐斯", continent:"歐洲", pop:"290 萬", lang:"立陶宛語", currency:"歐元 (EUR)", flag:"黃綠紅三色：黃為陽光與麥田、綠為森林原野、紅為熱血與勇氣。", fact:"波羅的海三國之一，「十字架山」上插滿數十萬座十字架；籃球是全民運動。" },
+  { code:"lv", zh:"拉脫維亞", en:"Latvia", capital:"里加", continent:"歐洲", pop:"190 萬", lang:"拉脫維亞語", currency:"歐元 (EUR)", flag:"深紅－白－深紅：「拉脫維亞紅」傳說源自受傷首領裹身白布上的血痕，文獻紀錄可追溯到 13 世紀。", fact:"里加老城擁有歐洲最集中的新藝術（Art Nouveau）建築群，列入世界遺產。" },
+  { code:"ee", zh:"愛沙尼亞", en:"Estonia", capital:"塔林", continent:"歐洲", pop:"130 萬", lang:"愛沙尼亞語", currency:"歐元 (EUR)", flag:"藍黑白三色：藍為天空湖泊、黑為土地與苦難的過去、白為冰雪與光明的未來。", fact:"數位化程度世界頂尖：全球最早開放網路投票，並首創「數位公民（e-Residency）」制度；Skype 的誕生地。" },
+  // ===== 北美洲 =====
+  { code:"us", zh:"美國", en:"United States", capital:"華盛頓特區", continent:"北美洲", pop:"3.35 億", lang:"英語", currency:"美元 (USD)", flag:"13 道紅白條紋代表獨立時的 13 個殖民地，50 顆星代表現今 50 州；星區隨州數增加已修改 26 次。", fact:"世界最大經濟體，好萊塢與矽谷分別引領全球影視與科技產業；黃石公園是世界第一座國家公園。" },
+  { code:"ca", zh:"加拿大", en:"Canada", capital:"渥太華", continent:"北美洲", pop:"4,000 萬", lang:"英語、法語", currency:"加拿大元 (CAD)", flag:"紅白是加拿大的國家色，中央 11 角楓葉是最具代表性的自然象徵，兩側紅條代表太平洋與大西洋。", fact:"世界面積第二大的國家，擁有世界最長的海岸線；楓糖漿產量佔全球七成以上，國旗上就是楓葉。" },
+  { code:"mx", zh:"墨西哥", en:"Mexico", capital:"墨西哥城", continent:"北美洲", pop:"1.28 億", lang:"西班牙語", currency:"披索 (MXN)", flag:"綠白紅代表獨立、宗教與統一；中央「鷹叼蛇立於仙人掌」源自阿茲特克人建城特諾奇提特蘭的神諭傳說。", fact:"古馬雅與阿茲特克文明的所在地；塔可（Taco）與亡靈節文化聞名全球，也是巧克力與辣椒的原鄉。" },
+  { code:"gt", zh:"瓜地馬拉", en:"Guatemala", capital:"瓜地馬拉市", continent:"北美洲", pop:"1,800 萬", lang:"西班牙語", currency:"格查爾 (GTQ)", flag:"天藍－白－天藍直條代表夾在兩大洋之間的國土，中央國徽有自由之鳥格查爾與獨立日期卷軸。", fact:"馬雅文明的核心地帶，蒂卡爾金字塔群隱身於熱帶雨林中；貨幣以國鳥格查爾鳥命名。" },
+  { code:"bz", zh:"貝里斯", en:"Belize", capital:"貝爾墨潘", continent:"北美洲", pop:"41 萬", lang:"英語", currency:"貝里斯元 (BZD)", flag:"藍底紅邊，中央徽章繪有兩位不同族裔的伐木工人與桃花心木，是世界少數以人物為主角的國旗。", fact:"中美洲唯一以英語為官方語言的國家，外海的「大藍洞」是世界知名潛水勝地。" },
+  { code:"sv", zh:"薩爾瓦多", en:"El Salvador", capital:"聖薩爾瓦多", continent:"北美洲", pop:"630 萬", lang:"西班牙語", currency:"美元 (USD)", flag:"藍白藍橫條代表兩洋之間的中美洲，中央國徽的三角形與五座火山紀念舊中美洲聯邦五國。", fact:"2021 年成為世界第一個將比特幣列為法定貨幣的國家，被稱「火山之國」。" },
+  { code:"hn", zh:"宏都拉斯", en:"Honduras", capital:"德古西加巴", continent:"北美洲", pop:"1,000 萬", lang:"西班牙語", currency:"倫皮拉 (HNL)", flag:"藍白藍橫條源自中美洲聯邦旗，五顆藍星代表期望有朝一日重新統一的中美洲五國。", fact:"馬雅古城科潘以精美石雕聞名；「香蕉共和國」一詞最初便是描述此地。" },
+  { code:"ni", zh:"尼加拉瓜", en:"Nicaragua", capital:"馬拿瓜", continent:"北美洲", pop:"700 萬", lang:"西班牙語", currency:"科多巴 (NIO)", flag:"藍白藍橫條加中央三角國徽，徽中的彩虹與五座火山同樣紀念中美洲聯邦。", fact:"中美洲最大湖泊尼加拉瓜湖中曾有罕見的淡水公牛鯊；「湖泊與火山之國」。" },
+  { code:"cr", zh:"哥斯大黎加", en:"Costa Rica", capital:"聖荷西", continent:"北美洲", pop:"520 萬", lang:"西班牙語", currency:"科朗 (CRC)", flag:"在中美洲的藍白配色中加入紅色寬條，象徵人民的熱血與活力，配色靈感來自法國三色旗。", fact:"1949 年廢除軍隊至今，全國約四分之一土地為自然保護區，電力幾乎 100% 來自再生能源。" },
+  { code:"pa", zh:"巴拿馬", en:"Panama", capital:"巴拿馬城", continent:"北美洲", pop:"440 萬", lang:"西班牙語", currency:"巴波亞 (PAB)／美元", flag:"紅藍白四等分：紅藍代表當時的兩大政黨，白色代表和平，兩顆星分別象徵純潔與法治。", fact:"巴拿馬運河連接太平洋與大西洋，是世界航運的咽喉要道。" },
+  { code:"cu", zh:"古巴", en:"Cuba", capital:"哈瓦那", continent:"北美洲", pop:"1,100 萬", lang:"西班牙語", currency:"古巴披索 (CUP)", flag:"三道藍條代表獨立時的三個軍區，紅色三角源自自由、平等、博愛的理念，白色「孤星」指引獨立之路。", fact:"加勒比海最大島國，以雪茄、蘭姆酒與老爺車街景聞名；騷莎音樂與舞蹈的重要發源地。" },
+  { code:"bs", zh:"巴哈馬", en:"Bahamas", capital:"拿索", continent:"北美洲", pop:"41 萬", lang:"英語", currency:"巴哈馬元 (BSD)", flag:"水藍與金黃象徵大海與陽光沙灘，黑色三角代表人民的團結與決心。", fact:"由約 700 座島嶼組成的度假天堂，以「豬島」上會游泳的小豬聞名。" },
+  { code:"jm", zh:"牙買加", en:"Jamaica", capital:"京斯敦", continent:"北美洲", pop:"280 萬", lang:"英語", currency:"牙買加元 (JMD)", flag:"金色斜十字分割綠與黑：金為陽光、綠為土地、黑為人民的力量；是世界唯一完全不含紅、白、藍的國旗。", fact:"雷鬼音樂教父巴布·馬利與短跑傳奇「閃電」波爾特的故鄉；藍山咖啡產地。" },
+  { code:"ht", zh:"海地", en:"Haiti", capital:"太子港", continent:"北美洲", pop:"1,150 萬", lang:"海地克里奧語、法語", currency:"古德 (HTG)", flag:"藍紅兩色取自法國三色旗去掉白色——象徵擺脫殖民統治；中央是棕櫚樹與大炮的國徽。", fact:"1804 年由奴隸起義建國，是世界第一個獨立的黑人共和國。" },
+  { code:"do", zh:"多明尼加", en:"Dominican Republic", capital:"聖多明哥", continent:"北美洲", pop:"1,100 萬", lang:"西班牙語", currency:"披索 (DOP)", flag:"藍紅四分、中央白色十字，國徽裡繪有翻開的聖經，是世界唯一畫有聖經的國旗。", fact:"聖多明哥是美洲最古老的歐洲殖民城市；梅倫格舞的發源地，盛產職棒好手。" },
+  { code:"kn", zh:"聖克里斯多福及尼維斯", en:"Saint Kitts and Nevis", capital:"巴士地", continent:"北美洲", pop:"4.7 萬", lang:"英語", currency:"東加勒比元 (XCD)", flag:"綠（沃土）、黃（陽光）、紅（奮鬥）、黑（非洲傳承）斜向排列，兩顆白星象徵希望與自由，也代表兩座島。", fact:"美洲面積最小、人口最少的國家，由兩座火山島組成。" },
+  { code:"ag", zh:"安地卡及巴布達", en:"Antigua and Barbuda", capital:"聖約翰", continent:"北美洲", pop:"9.4 萬", lang:"英語", currency:"東加勒比元 (XCD)", flag:"金色太陽升起於黑底之上象徵新時代的黎明，V 字形代表勝利，藍白象徵海洋與沙灘。", fact:"號稱擁有 365 個海灘——「一年每天都能換一個」。" },
+  { code:"dm", zh:"多米尼克", en:"Dominica", capital:"羅索", continent:"北美洲", pop:"7.2 萬", lang:"英語", currency:"東加勒比元 (XCD)", flag:"綠底代表雨林，黃黑白三色十字象徵原住民、非洲血統與純潔，中央的紫色帝王亞馬遜鸚鵡讓它成為極少數用到紫色的國旗。", fact:"被稱「加勒比自然之島」，擁有世界第二大的沸騰湖。" },
+  { code:"lc", zh:"聖露西亞", en:"Saint Lucia", capital:"卡斯翠", continent:"北美洲", pop:"18 萬", lang:"英語", currency:"東加勒比元 (XCD)", flag:"藍底上的黑白金三角形，描繪皮通雙峰火山聳立於加勒比海上的景象。", fact:"世界少數以女性名字命名的國家，雙峰火山「皮通山」是世界遺產。" },
+  { code:"vc", zh:"聖文森及格瑞那丁", en:"Saint Vincent and the Grenadines", capital:"金石城", continent:"北美洲", pop:"10 萬", lang:"英語", currency:"東加勒比元 (XCD)", flag:"藍黃綠三條，中央三顆綠色菱形排成 V 字，暱稱「寶石旗」——聖文森被稱為「安地列斯的寶石」。", fact:"電影《神鬼奇航》系列的主要拍攝地之一。" },
+  { code:"bb", zh:"巴貝多", en:"Barbados", capital:"橋鎮", continent:"北美洲", pop:"28 萬", lang:"英語", currency:"巴貝多元 (BBD)", flag:"藍金藍三條象徵海洋與沙灘，中央的三叉戟頭取自海神波賽頓，「斷柄」象徵與殖民過去決裂。", fact:"流行天后蕾哈娜的祖國；2021 年由君主立憲改制為共和國。" },
+  { code:"gd", zh:"格瑞那達", en:"Grenada", capital:"聖喬治", continent:"北美洲", pop:"12 萬", lang:"英語", currency:"東加勒比元 (XCD)", flag:"紅黃綠配色象徵活力與農業，七顆星代表七個行政區，左側的肉豆蔻圖案標示「香料之島」的身分。", fact:"被稱「香料之島」，肉豆蔻產量位居世界前列，國旗上就有一顆肉豆蔻。" },
+  { code:"tt", zh:"千里達及托巴哥", en:"Trinidad and Tobago", capital:"西班牙港", continent:"北美洲", pop:"150 萬", lang:"英語", currency:"千里達元 (TTD)", flag:"紅底白邊黑斜帶：紅為人民的活力、黑為團結與力量、白為環繞的海洋與平等。", fact:"鋼鼓（Steelpan）的發明地——20 世紀唯一新發明的原聲樂器。" },
+  // ===== 南美洲 =====
+  { code:"br", zh:"巴西", en:"Brazil", capital:"巴西利亞", continent:"南美洲", pop:"2.16 億", lang:"葡萄牙語", currency:"雷亞爾 (BRL)", flag:"綠色與黃色菱形代表巴西的森林與礦產財富；藍色天球繪有里約夜空的星座，白帶寫著「秩序與進步」。", fact:"南美洲最大國家，擁有六成的亞馬遜雨林；足球王國，曾五度奪得世界盃冠軍，里約嘉年華是世界最大慶典。" },
+  { code:"ar", zh:"阿根廷", en:"Argentina", capital:"布宜諾斯艾利斯", continent:"南美洲", pop:"4,600 萬", lang:"西班牙語", currency:"披索 (ARS)", flag:"天藍與白色源自獨立軍的帽章與五月革命的天空，中央有人臉的「五月太陽」是印加太陽神的形象。", fact:"探戈的發源地，牛肉消費量世界名列前茅；梅西帶領國家隊奪得 2022 年世界盃冠軍。" },
+  { code:"cl", zh:"智利", en:"Chile", capital:"聖地牙哥", continent:"南美洲", pop:"1,960 萬", lang:"西班牙語", currency:"披索 (CLP)", flag:"白紅象徵安地斯山雪與獨立熱血，藍色方格與白色「孤星」代表天空與國家的統一。", fact:"世界最狹長的國家，南北長 4,300 公里但平均寬僅 180 公里；阿塔卡馬沙漠是地球上最乾燥的地方。" },
+  { code:"pe", zh:"祕魯", en:"Peru", capital:"利馬", continent:"南美洲", pop:"3,400 萬", lang:"西班牙語、克丘亞語", currency:"索爾 (PEN)", flag:"紅白紅直條，傳說解放者聖馬丁看見紅白相間的火鶴群飛起，決定以此作為新國家的顏色。", fact:"印加帝國的中心，馬丘比丘古城建於海拔 2,430 公尺的山脊上；馬鈴薯的原產地，品種超過 3,000 種。" },
+  { code:"co", zh:"哥倫比亞", en:"Colombia", capital:"波哥大", continent:"南美洲", pop:"5,200 萬", lang:"西班牙語", currency:"披索 (COP)", flag:"黃色佔了上半部代表財富與陽光，藍色代表兩大洋與天空，紅色代表獨立志士的鮮血。", fact:"世界知名的咖啡產地，也是世界祖母綠寶石最大出口國；生物多樣性密度全球數一數二。" },
+  { code:"ve", zh:"委內瑞拉", en:"Venezuela", capital:"卡拉卡斯", continent:"南美洲", pop:"2,800 萬", lang:"西班牙語", currency:"玻利瓦 (VES)", flag:"黃藍紅與哥倫比亞同源（大哥倫比亞），弧形排列的八顆星代表獨立時宣言的八個省份。", fact:"世界最高瀑布安赫爾瀑布（979 公尺）所在地，石油儲量世界第一。" },
+  { code:"ec", zh:"厄瓜多", en:"Ecuador", capital:"基多", continent:"南美洲", pop:"1,800 萬", lang:"西班牙語", currency:"美元 (USD)", flag:"黃藍紅同樣繼承大哥倫比亞配色，中央加上國徽：欽博拉索山、蒸汽船與展翅的安地斯神鷹。", fact:"國名在西班牙語中意為「赤道」；加拉巴哥群島的獨特生態啟發了達爾文的演化論。" },
+  { code:"bo", zh:"玻利維亞", en:"Bolivia", capital:"蘇克雷（法定）／拉巴斯（政府所在）", continent:"南美洲", pop:"1,200 萬", lang:"西班牙語等 37 種官方語言", currency:"玻利維亞諾 (BOB)", flag:"紅黃綠三色：紅為勇士之血、黃為礦產財富、綠為沃土；中央是國徽。", fact:"烏尤尼鹽沼是世界最大鹽沼，雨後成為壯觀的「天空之鏡」。" },
+  { code:"py", zh:"巴拉圭", en:"Paraguay", capital:"亞松森", continent:"南美洲", pop:"680 萬", lang:"西班牙語、瓜拉尼語", currency:"瓜拉尼 (PYG)", flag:"紅白藍三色仿法國旗精神；是世界唯一正反兩面圖案不同的國旗——正面是國徽、背面是獅子與自由帽。", fact:"南美洲兩個內陸國之一，與巴西共有的伊泰普水壩曾是世界發電量最大的水力發電廠。" },
+  { code:"uy", zh:"烏拉圭", en:"Uruguay", capital:"蒙特維多", continent:"南美洲", pop:"340 萬", lang:"西班牙語", currency:"披索 (UYU)", flag:"藍白九條代表獨立時的九個省份，左上的「五月太陽」與阿根廷同源，紀念五月革命。", fact:"1930 年主辦第一屆世界盃足球賽並奪冠；牛隻數量約為人口的 4 倍。" },
+  { code:"gy", zh:"蓋亞那", en:"Guyana", capital:"喬治城", continent:"南美洲", pop:"80 萬", lang:"英語", currency:"蓋亞那元 (GYD)", flag:"「金色箭頭」：綠為叢林、白為河川、金為礦產、黑為毅力、紅為熱情——象徵國家射向未來。", fact:"南美洲唯一以英語為官方語言的國家；凱伊特瀑布單段落差是尼加拉瀑布的約四倍。" },
+  { code:"sr", zh:"蘇利南", en:"Suriname", capital:"巴拉馬利波", continent:"南美洲", pop:"62 萬", lang:"荷蘭語", currency:"蘇利南元 (SRD)", flag:"綠紅綠配白邊，中央金星象徵各族團結與光明未來，紅色寬條代表進步與愛。", fact:"南美洲面積最小的國家，也是西半球唯一以荷蘭語為官方語言的國家；九成以上國土被森林覆蓋。" },
+  // ===== 非洲 =====
+  { code:"eg", zh:"埃及", en:"Egypt", capital:"開羅", continent:"非洲", pop:"1.1 億", lang:"阿拉伯語", currency:"埃及鎊 (EGP)", flag:"紅白黑泛阿拉伯三色：紅為革命前的奮鬥、白為 1952 年不流血革命、黑為告別的殖民黑暗；中央金鷹是「薩拉丁之鷹」。", fact:"古埃及文明綿延 3,000 年，吉薩金字塔是古代世界七大奇蹟中唯一留存至今的；尼羅河是世界最長河流之一。" },
+  { code:"dz", zh:"阿爾及利亞", en:"Algeria", capital:"阿爾及爾", continent:"非洲", pop:"4,500 萬", lang:"阿拉伯語、柏柏語", currency:"第納爾 (DZD)", flag:"綠白象徵伊斯蘭與純潔，紅色新月與星代表烈士的鮮血；月彎的開口比一般的新月更寬。", fact:"非洲面積最大的國家，約八成國土屬於撒哈拉沙漠。" },
+  { code:"tn", zh:"突尼西亞", en:"Tunisia", capital:"突尼斯", continent:"非洲", pop:"1,200 萬", lang:"阿拉伯語", currency:"第納爾 (TND)", flag:"紅底中央白圓內有紅色新月與星，設計源自鄂圖曼旗幟；新月環抱五角星象徵民族團結。", fact:"古迦太基文明的所在地，2010 年的「茉莉花革命」由此展開。" },
+  { code:"ly", zh:"利比亞", en:"Libya", capital:"的黎波里", continent:"非洲", pop:"680 萬", lang:"阿拉伯語", currency:"第納爾 (LYD)", flag:"紅黑綠三色加白色新月星，加寬的黑色橫條源自獨立時塞努西王朝的旗幟。", fact:"九成以上國土為沙漠，擁有非洲最大的石油儲量。" },
+  { code:"ma", zh:"摩洛哥", en:"Morocco", capital:"拉巴特", continent:"非洲", pop:"3,700 萬", lang:"阿拉伯語、柏柏語", currency:"迪拉姆 (MAD)", flag:"紅底中央綠色五角星「所羅門封印」：紅色是王朝傳統色，綠星的五個角代表伊斯蘭五功。", fact:"「藍色小鎮」舍夫沙萬與馬拉喀什的市集聞名世界；距離歐洲最近處只隔 13 公里的直布羅陀海峽。" },
+  { code:"sd", zh:"蘇丹", en:"Sudan", capital:"喀土穆", continent:"非洲", pop:"4,800 萬", lang:"阿拉伯語、英語", currency:"蘇丹鎊 (SDG)", flag:"紅白黑泛阿拉伯色加綠色三角：紅為犧牲、白為和平、黑呼應國名（阿拉伯語「蘇丹」意為黑）、綠為農業。", fact:"境內麥羅埃的努比亞金字塔數量比埃及還多；青尼羅河與白尼羅河在喀土穆交會。" },
+  { code:"ss", zh:"南蘇丹", en:"South Sudan", capital:"朱巴", continent:"非洲", pop:"1,100 萬", lang:"英語", currency:"南蘇丹鎊 (SSP)", flag:"黑紅綠橫條配白邊，加上藍色三角與金星：藍色代表尼羅河，金星是指引團結的伯利恆之星。", fact:"2011 年獨立，是目前世界上最年輕的國家。" },
+  { code:"er", zh:"厄利垂亞", en:"Eritrea", capital:"阿斯瑪拉", continent:"非洲", pop:"360 萬", lang:"提格利尼亞語、阿拉伯語", currency:"納克法 (ERN)", flag:"紅色三角自旗桿貫穿全旗象徵獨立的鮮血，其中的金色橄欖枝環源自聯合國時期的旗幟。", fact:"紅海沿岸國家，首都阿斯瑪拉保存完整的義大利現代主義建築群是世界遺產。" },
+  { code:"dj", zh:"吉布地", en:"Djibouti", capital:"吉布地市", continent:"非洲", pop:"110 萬", lang:"法語、阿拉伯語", currency:"吉布地法郎 (DJF)", flag:"天藍代表天空、海洋與伊薩族，綠色代表大地與阿法爾族，白色三角與紅星象徵和平與團結。", fact:"扼守紅海進出印度洋的咽喉曼德海峽，多個大國在此設有軍事基地。" },
+  { code:"so", zh:"索馬利亞", en:"Somalia", capital:"摩加迪休", continent:"非洲", pop:"1,800 萬", lang:"索馬利語、阿拉伯語", currency:"索馬利亞先令 (SOS)", flag:"「聯合國藍」的底色感謝聯合國協助獨立，白色五角星的五個角代表索馬利族分布的五個地區。", fact:"位於「非洲之角」，擁有非洲大陸最長的海岸線。" },
+  { code:"et", zh:"衣索比亞", en:"Ethiopia", capital:"阿迪斯阿貝巴", continent:"非洲", pop:"1.2 億", lang:"阿姆哈拉語", currency:"比爾 (ETB)", flag:"綠黃紅是「泛非顏色」的始祖——非洲最古老獨立國的旗色被眾多非洲國家借用；中央藍圓金星代表團結與光明。", fact:"咖啡的發源地，也是非洲少數從未被完整殖民的國家；使用獨特的衣索比亞曆法，一年有 13 個月。" },
+  { code:"ke", zh:"肯亞", en:"Kenya", capital:"奈洛比", continent:"非洲", pop:"5,500 萬", lang:"史瓦希利語、英語", currency:"肯亞先令 (KES)", flag:"黑紅綠配白邊：黑為人民、紅為爭取獨立的鮮血、綠為大地；中央是馬賽戰士的盾牌與長矛，象徵捍衛自由。", fact:"馬賽馬拉草原每年上演動物大遷徙的壯觀景象；長跑強國，馬拉松世界紀錄多由肯亞選手保持。" },
+  { code:"ug", zh:"烏干達", en:"Uganda", capital:"康帕拉", continent:"非洲", pop:"4,800 萬", lang:"英語、史瓦希利語", currency:"烏干達先令 (UGX)", flag:"黑黃紅三色重複兩次：黑為人民、黃為陽光、紅為手足之血；中央白圓內是國鳥灰冠鶴。", fact:"尼羅河的源頭之一維多利亞湖畔，是瀕危山地大猩猩的重要棲地。" },
+  { code:"rw", zh:"盧安達", en:"Rwanda", capital:"吉佳利", continent:"非洲", pop:"1,400 萬", lang:"盧安達語、英語、法語", currency:"盧安達法郎 (RWF)", flag:"藍黃綠象徵和平、發展與繁榮，右上的金色太陽代表啟蒙；2001 年換旗時刻意避開易聯想種族屠殺的紅色。", fact:"「千丘之國」，國會女性議員比例世界最高，並率先全面禁用塑膠袋。" },
+  { code:"bi", zh:"蒲隆地", en:"Burundi", capital:"基特加", continent:"非洲", pop:"1,300 萬", lang:"基隆迪語、法語", currency:"蒲隆地法郎 (BIF)", flag:"白色斜十字分割紅綠區塊，中央三顆紅星代表國家格言「團結、勞動、進步」，也代表三大族群。", fact:"位於世界第二深湖泊坦干依喀湖畔，鼓樂表演被列為無形文化遺產。" },
+  { code:"tz", zh:"坦尚尼亞", en:"Tanzania", capital:"杜篤瑪", continent:"非洲", pop:"6,500 萬", lang:"史瓦希利語、英語", currency:"坦尚尼亞先令 (TZS)", flag:"綠色代表大地、藍色代表海洋與湖泊，金邊黑色斜帶代表人民與礦產。", fact:"非洲最高峰吉力馬札羅山（5,895 公尺）位於境內；塞倫蓋提國家公園是世界最著名的野生動物保護區之一。" },
+  { code:"cd", zh:"剛果民主共和國", en:"DR Congo", capital:"金夏沙", continent:"非洲", pop:"1 億", lang:"法語", currency:"剛果法郎 (CDF)", flag:"天藍底象徵和平，紅色斜帶代表烈士鮮血，黃邊代表財富，左上金星指引統一的未來。", fact:"非洲面積第二大國，鈷礦產量約佔全球七成，是電動車電池的關鍵原料來源。" },
+  { code:"cg", zh:"剛果共和國", en:"Republic of the Congo", capital:"布拉薩市", continent:"非洲", pop:"600 萬", lang:"法語", currency:"中非法郎 (XAF)", flag:"綠黃紅泛非三色以對角線排列，是少數採斜向設計的非洲國旗。", fact:"首都布拉薩市與對岸的金夏沙隔剛果河相望，是世界距離最近的兩國首都。" },
+  { code:"ga", zh:"加彭", en:"Gabon", capital:"自由市", continent:"非洲", pop:"240 萬", lang:"法語", currency:"中非法郎 (XAF)", flag:"綠黃藍三條：綠為森林、黃為赤道陽光（加彭正跨在赤道上）、藍為海洋。", fact:"約 88% 的國土被雨林覆蓋，是低地大猩猩與森林象的重要家園。" },
+  { code:"gq", zh:"赤道幾內亞", en:"Equatorial Guinea", capital:"馬拉波", continent:"非洲", pop:"170 萬", lang:"西班牙語、法語", currency:"中非法郎 (XAF)", flag:"綠白紅三條加藍色三角（象徵連接各島的海洋），中央國徽是神樹木棉與六顆星。", fact:"非洲唯一以西班牙語為官方語言的國家，首都位於外海的島嶼上。" },
+  { code:"cm", zh:"喀麥隆", en:"Cameroon", capital:"雅溫德", continent:"非洲", pop:"2,800 萬", lang:"法語、英語", currency:"中非法郎 (XAF)", flag:"綠紅黃泛非三色直條，中央金星象徵國家統一。", fact:"地形涵蓋沙漠、雨林、高山與海岸，被稱為「小非洲」；足球勁旅「非洲雄獅」。" },
+  { code:"cf", zh:"中非共和國", en:"Central African Republic", capital:"班基", continent:"非洲", pop:"560 萬", lang:"桑戈語、法語", currency:"中非法郎 (XAF)", flag:"藍白綠黃四橫條被紅色直條垂直貫穿，罕見的構圖象徵歐洲與非洲的合作、各族血脈相連，左上有金星。", fact:"位於非洲大陸的地理中心地帶，森林中的姆巴奇矮人族文化獨特。" },
+  { code:"td", zh:"查德", en:"Chad", capital:"恩加美納", continent:"非洲", pop:"1,800 萬", lang:"法語、阿拉伯語", currency:"中非法郎 (XAF)", flag:"藍黃紅直條：藍為天空與希望、黃為太陽與沙漠、紅為犧牲；與羅馬尼亞國旗幾乎相同，僅藍色略深。", fact:"位於撒哈拉與草原的交界，查德湖數十年間面積縮小了九成以上。" },
+  { code:"ne", zh:"尼日", en:"Niger", capital:"尼阿美", continent:"非洲", pop:"2,700 萬", lang:"法語", currency:"西非法郎 (XOF)", flag:"橙白綠三條配中央橙色圓：橙為撒哈拉、白為純潔、綠為草原，圓形代表太陽；構圖與印度國旗神似。", fact:"國土六成以上位於撒哈拉沙漠，是世界重要的鈾礦出口國。" },
+  { code:"ml", zh:"馬利", en:"Mali", capital:"巴馬科", continent:"非洲", pop:"2,300 萬", lang:"班巴拉語等（官方）", currency:"西非法郎 (XOF)", flag:"綠黃紅泛非三色直條：樣式仿法國三色旗，顏色取泛非色。", fact:"廷巴克圖曾是黃金與學術之城；14 世紀國王曼薩·穆薩被認為可能是史上最富有的人。" },
+  { code:"bf", zh:"布吉納法索", en:"Burkina Faso", capital:"瓦加杜古", continent:"非洲", pop:"2,300 萬", lang:"法語", currency:"西非法郎 (XOF)", flag:"紅綠橫條加中央金星：紅為革命、綠為富饒的土地、金星是革命的指引之光。", fact:"國名意為「正人君子之國」，兩年一度的非洲電影節（FESPACO）在此舉行。" },
+  { code:"sn", zh:"塞內加爾", en:"Senegal", capital:"達卡", continent:"非洲", pop:"1,800 萬", lang:"法語", currency:"西非法郎 (XOF)", flag:"綠黃紅泛非三色直條加中央綠星，與馬利國旗只差這顆星。", fact:"位於非洲大陸最西端，粉紅色的雷特巴湖（玫瑰湖）是著名奇景。" },
+  { code:"gm", zh:"甘比亞", en:"Gambia", capital:"班竹", continent:"非洲", pop:"270 萬", lang:"英語", currency:"達拉西 (GMD)", flag:"紅藍綠橫條配白邊：紅為草原上的太陽、藍為蜿蜒的甘比亞河、綠為森林與農業。", fact:"非洲大陸面積最小的國家，國土沿甘比亞河兩岸呈細長狀，幾乎被塞內加爾包圍。" },
+  { code:"gw", zh:"幾內亞比索", en:"Guinea-Bissau", capital:"比索", continent:"非洲", pop:"210 萬", lang:"葡萄牙語", currency:"西非法郎 (XOF)", flag:"紅色直條上的黑星象徵非洲團結，黃綠橫條代表財富與希望，配色致敬迦納。", fact:"由大陸與比熱戈斯群島組成，腰果是最主要的出口作物。" },
+  { code:"gn", zh:"幾內亞", en:"Guinea", capital:"柯那克里", continent:"非洲", pop:"1,400 萬", lang:"法語", currency:"幾內亞法郎 (GNF)", flag:"紅黃綠泛非三色直條，恰好是馬利國旗的鏡像排列。", fact:"鋁土礦（煉鋁原料）儲量位居世界第一。" },
+  { code:"sl", zh:"獅子山", en:"Sierra Leone", capital:"自由城", continent:"非洲", pop:"860 萬", lang:"英語", currency:"利昂 (SLE)", flag:"綠白藍三橫條：綠為山林與農業、白為團結正義、藍為自由城天然良港的海洋。", fact:"首都「自由城」由 18 世紀返非的獲釋奴隸所建立。" },
+  { code:"lr", zh:"賴比瑞亞", en:"Liberia", capital:"蒙羅維亞", continent:"非洲", pop:"550 萬", lang:"英語", currency:"賴比瑞亞元 (LRD)", flag:"紅白條紋與單星藍方格仿美國國旗——記錄由美國獲釋奴隸建國的歷史；11 道條紋代表 11 位獨立宣言簽署人。", fact:"1847 年由美國獲釋奴隸建立，是非洲第一個共和國；也選出非洲第一位民選女總統。" },
+  { code:"ci", zh:"象牙海岸", en:"Côte d'Ivoire", capital:"雅穆索戈", continent:"非洲", pop:"2,900 萬", lang:"法語", currency:"西非法郎 (XOF)", flag:"橙白綠直條：橙為北部草原、白為和平、綠為南部森林；恰為愛爾蘭國旗的鏡像。", fact:"世界最大的可可豆生產國，全球約四成巧克力原料來自這裡。" },
+  { code:"gh", zh:"迦納", en:"Ghana", capital:"阿克拉", continent:"非洲", pop:"3,400 萬", lang:"英語", currency:"塞地 (GHS)", flag:"紅黃綠泛非橫條加中央黑星：「黑星」象徵非洲自由的指引，也是國家足球隊的暱稱。", fact:"世界第二大可可豆生產國，你吃的巧克力很可能來自這裡；1957 年成為撒哈拉以南非洲第一個獨立的國家。" },
+  { code:"tg", zh:"多哥", en:"Togo", capital:"洛美", continent:"非洲", pop:"900 萬", lang:"法語", currency:"西非法郎 (XOF)", flag:"綠黃相間五條代表五個行政區與農業勞動，紅色方格內的白星象徵純潔與希望。", fact:"西非狹長小國，東西最窄處僅約 50 公里，是巫毒信仰的重要地區。" },
+  { code:"bj", zh:"貝南", en:"Benin", capital:"新港", continent:"非洲", pop:"1,300 萬", lang:"法語", currency:"西非法郎 (XOF)", flag:"綠色直條加黃紅橫條：綠為希望與復興、黃為財富、紅為勇氣，皆為泛非色彩。", fact:"巫毒教（Vodun）的發源地，古達荷美王國曾以女戰士軍團聞名。" },
+  { code:"ng", zh:"奈及利亞", en:"Nigeria", capital:"阿布加", continent:"非洲", pop:"2.2 億", lang:"英語", currency:"奈拉 (NGN)", flag:"綠白綠直條：綠色代表農業與森林，白色代表和平團結；由全國設計競賽的學生作品選出。", fact:"非洲人口最多的國家；「奈萊塢」電影年產量世界前列，非洲流行音樂 Afrobeats 從這裡走向全球。" },
+  { code:"mr", zh:"茅利塔尼亞", en:"Mauritania", capital:"諾克少", continent:"非洲", pop:"480 萬", lang:"阿拉伯語", currency:"烏吉亞 (MRU)", flag:"綠底金色新月星象徵伊斯蘭與撒哈拉；上下的紅條是 2017 年公投加入的，紀念抵抗殖民的犧牲。", fact:"撒哈拉中的「非洲之眼」理查特結構直徑約 40 公里，從太空清晰可見。" },
+  { code:"cv", zh:"維德角", en:"Cabo Verde", capital:"培亞", continent:"非洲", pop:"60 萬", lang:"葡萄牙語", currency:"維德角埃斯庫多 (CVE)", flag:"藍底代表大西洋，紅白條紋是通往建設的道路，十顆金星圍成圓圈代表十座主要島嶼。", fact:"大西洋上的火山群島國家，「赤腳歌后」西莎莉亞·艾芙拉的故鄉。" },
+  { code:"st", zh:"聖多美普林西比", en:"São Tomé and Príncipe", capital:"聖多美", continent:"非洲", pop:"23 萬", lang:"葡萄牙語", currency:"多布拉 (STN)", flag:"綠黃綠橫條加紅色三角，黃條上的兩顆黑星代表聖多美與普林西比兩座主島。", fact:"幾內亞灣上的可可島國，是非洲面積第二小的國家。" },
+  { code:"ao", zh:"安哥拉", en:"Angola", capital:"魯安達", continent:"非洲", pop:"3,600 萬", lang:"葡萄牙語", currency:"寬扎 (AOA)", flag:"紅黑兩色代表鮮血與非洲大陸；中央齒輪、彎刀與星星致敬工農，構圖令人聯想鐮刀鎚子。", fact:"石油與鑽石資源豐富，巨大的沙漠百歲蘭可存活上千年。" },
+  { code:"zm", zh:"尚比亞", en:"Zambia", capital:"路沙卡", continent:"非洲", pop:"2,000 萬", lang:"英語", currency:"克瓦查 (ZMW)", flag:"綠底的右下角配紅黑橙三條與雄鷹：紅為奮鬥、黑為人民、橙為銅礦，雄鷹象徵翱翔於困難之上。", fact:"與辛巴威共享維多利亞瀑布——當地稱「雷鳴之煙」，是世界最壯觀的瀑布之一。" },
+  { code:"mw", zh:"馬拉威", en:"Malawi", capital:"里朗威", continent:"非洲", pop:"2,100 萬", lang:"英語、齊切瓦語", currency:"克瓦查 (MWK)", flag:"黑紅綠橫條上的紅色旭日，代表非洲希望的黎明；國名馬拉威本意即為「火焰」。", fact:"被稱「非洲溫暖之心」，馬拉威湖的魚類物種數量居世界湖泊之冠。" },
+  { code:"mz", zh:"莫三比克", en:"Mozambique", capital:"馬布多", continent:"非洲", pop:"3,300 萬", lang:"葡萄牙語", currency:"梅蒂卡爾 (MZN)", flag:"綠黑黃橫條加紅色三角，星上疊著書本、鋤頭與 AK-47 步槍——世界唯一畫有現代步槍的國旗，象徵保衛與建設。", fact:"印度洋岸線綿長，是世界唯一國旗上有 AK-47 步槍圖案的國家。" },
+  { code:"zw", zh:"辛巴威", en:"Zimbabwe", capital:"哈拉雷", continent:"非洲", pop:"1,600 萬", lang:"英語、紹納語等", currency:"辛巴威金元 (ZiG)", flag:"綠黃紅黑七道泛非色橫條，白色三角內的「辛巴威鳥」是大辛巴威遺址出土的皂石雕刻，紅星代表革命。", fact:"「大辛巴威」石城遺跡是撒哈拉以南非洲最大的古代石造建築群，國名即源於此。" },
+  { code:"bw", zh:"波札那", en:"Botswana", capital:"嘉柏隆里", continent:"非洲", pop:"260 萬", lang:"英語、札那語", currency:"普拉 (BWP)", flag:"天藍底象徵珍貴的雨水（國家格言「Pula」即「雨」），黑白條紋象徵種族和諧，也呼應國獸斑馬。", fact:"世界主要鑽石生產國之一，奧卡萬哥三角洲是世界最大的內陸三角洲。" },
+  { code:"na", zh:"納米比亞", en:"Namibia", capital:"溫荷克", continent:"非洲", pop:"260 萬", lang:"英語", currency:"納米比亞元 (NAD)", flag:"藍、紅、綠以白邊斜向分割，金色太陽有 12 道光芒：藍為天空海洋、紅為人民、綠為農業。", fact:"納米比沙漠被認為是世界最古老的沙漠，蘇絲斯黎的紅色沙丘高達 300 多公尺。" },
+  { code:"sz", zh:"史瓦帝尼", en:"Eswatini", capital:"姆巴巴內", continent:"非洲", pop:"120 萬", lang:"史瓦帝語、英語", currency:"里朗吉尼 (SZL)", flag:"紅底配藍黃邊條，中央是恩古尼式盾牌與長矛；黑白相間的盾面象徵黑白族群和平共處。", fact:"非洲少數國王仍握有實權的君主制國家，2018 年由「史瓦濟蘭」改為現名，是臺灣的邦交國。" },
+  { code:"ls", zh:"賴索托", en:"Lesotho", capital:"馬賽魯", continent:"非洲", pop:"230 萬", lang:"塞索托語、英語", currency:"洛蒂 (LSL)", flag:"藍白綠橫條代表雨水、和平與繁榮，中央是巴索托人的傳統草帽「mokorotlo」。", fact:"全境海拔超過 1,400 公尺、被南非完全包圍的「天空王國」。" },
+  { code:"mg", zh:"馬達加斯加", en:"Madagascar", capital:"安塔那那利佛", continent:"非洲", pop:"3,000 萬", lang:"馬拉加斯語、法語", currency:"阿里亞里 (MGA)", flag:"白紅綠三色：白為純潔、紅為主權、綠為沿海平原的人民與希望。", fact:"世界第四大島，約八成物種為特有種，狐猴與猴麵包樹是代表性象徵。" },
+  { code:"mu", zh:"模里西斯", en:"Mauritius", capital:"路易港", continent:"非洲", pop:"130 萬", lang:"英語、法語", currency:"模里西斯盧比 (MUR)", flag:"紅藍黃綠四道等寬橫條的「彩虹旗」：紅為獨立奮鬥、藍為印度洋、黃為獨立之光、綠為農業，是世界唯一的四色等條國旗。", fact:"已滅絕的度度鳥曾是此島特有種；馬克·吐溫曾說「上帝先創造了模里西斯，再照著它創造天堂」。" },
+  { code:"sc", zh:"塞席爾", en:"Seychelles", capital:"維多利亞", continent:"非洲", pop:"10 萬", lang:"塞席爾克里奧語、英語、法語", currency:"塞席爾盧比 (SCR)", flag:"五色由旗桿角放射而出，象徵朝氣蓬勃邁向未來：藍為天空海洋、黃為太陽、紅為人民、白為正義、綠為大地。", fact:"由 115 座島嶼組成，特有的「海椰子」擁有世界最大的種子。" },
+  { code:"km", zh:"葛摩", en:"Comoros", capital:"莫洛尼", continent:"非洲", pop:"85 萬", lang:"葛摩語、阿拉伯語、法語", currency:"葛摩法郎 (KMF)", flag:"四道橫條與新月旁的四顆星都代表四座主要島嶼，綠色三角與新月象徵伊斯蘭。", fact:"被稱「月亮群島」，是香水原料依蘭依蘭（Ylang-Ylang）的世界主要產地。" },
+  { code:"za", zh:"南非", en:"South Africa", capital:"普利托利亞", continent:"非洲", pop:"6,000 萬", lang:"祖魯語、英語等 12 種官方語言", currency:"蘭特 (ZAR)", flag:"六色 Y 字形設計象徵各族群「殊途同歸」，融合非洲民族議會與舊共和國旗的顏色，是種族和解的象徵。", fact:"世界唯一擁有三個首都的國家（行政、立法、司法各一）；曼德拉在此終結種族隔離制度，被稱「彩虹之國」。" },
+  // ===== 大洋洲 =====
+  { code:"au", zh:"澳洲", en:"Australia", capital:"坎培拉", continent:"大洋洲", pop:"2,600 萬", lang:"英語", currency:"澳幣 (AUD)", flag:"深藍底左上的聯合傑克顯示與英國的淵源，大七角星代表六州一領地，右側南十字星座標示南半球的位置。", fact:"世界唯一獨佔一整塊大陸的國家，袋鼠數量比人口還多；大堡礁是世界最大的珊瑚礁群，從太空中都能看見。" },
+  { code:"nz", zh:"紐西蘭", en:"New Zealand", capital:"威靈頓", continent:"大洋洲", pop:"520 萬", lang:"英語、毛利語", currency:"紐西蘭元 (NZD)", flag:"深藍底加聯合傑克與四顆紅色南十字星；與澳洲旗神似，但紐西蘭的星是紅色、只有四顆。", fact:"《魔戒》電影的拍攝地，綿羊數量約為人口的 5 倍；1893 年成為世界第一個賦予女性投票權的國家。" },
+  { code:"pg", zh:"巴布亞紐幾內亞", en:"Papua New Guinea", capital:"摩士比港", continent:"大洋洲", pop:"1,000 萬", lang:"英語、巴布亞皮欽語等", currency:"基那 (PGK)", flag:"紅黑對角分割：紅底繪金色極樂鳥（天堂鳥），黑底繪南十字星；設計者是一位 15 歲的女學生。", fact:"世界語言最多樣的國家，境內使用的語言超過 800 種。" },
+  { code:"fj", zh:"斐濟", en:"Fiji", capital:"蘇瓦", continent:"大洋洲", pop:"93 萬", lang:"英語、斐濟語", currency:"斐濟元 (FJD)", flag:"淺藍底代表太平洋，保留聯合傑克與盾徽；盾牌上有甘蔗、椰子、香蕉與和平鴿。", fact:"由 330 多座島嶼組成的南太平洋度假天堂；橫跨國際換日線附近，是世界上最早迎接新一天的國家之一。" },
+  { code:"sb", zh:"索羅門群島", en:"Solomon Islands", capital:"荷尼阿拉", continent:"大洋洲", pop:"72 萬", lang:"英語", currency:"索羅門群島元 (SBD)", flag:"藍綠對角象徵海洋與土地，黃色斜帶是陽光，五顆星原代表五大省份。", fact:"二次大戰太平洋戰場關鍵戰役「瓜達康納爾之戰」的發生地。" },
+  { code:"vu", zh:"萬那杜", en:"Vanuatu", capital:"維拉港", continent:"大洋洲", pop:"33 萬", lang:"比斯拉馬語、英語、法語", currency:"瓦圖 (VUV)", flag:"黑色代表人民，紅色代表鮮血，綠色代表土地；Y 字形金邊象徵群島分布的形狀，左側是豬牙與蕨葉——財富與和平的傳統象徵。", fact:"塔納島上的亞蘇爾火山是世界最容易近距離觀賞的活火山之一；高空彈跳的原型「陸地跳水」源自此地。" },
+  { code:"ws", zh:"薩摩亞", en:"Samoa", capital:"阿皮亞", continent:"大洋洲", pop:"22 萬", lang:"薩摩亞語、英語", currency:"塔拉 (WST)", flag:"紅底左上藍色方格內是南十字星：紅為勇氣、藍為自由、白為純潔。", fact:"2011 年底調整時區直接「跳過一天」，從換日線東側改到西側。" },
+  { code:"to", zh:"東加", en:"Tonga", capital:"努瓜婁發", continent:"大洋洲", pop:"11 萬", lang:"東加語、英語", currency:"潘加 (TOP)", flag:"紅底左上白格內紅十字，象徵基督信仰與基督的血；憲法明文規定國旗永不更改。", fact:"南太平洋唯一從未被外國殖民統治的王國。" },
+  { code:"tv", zh:"吐瓦魯", en:"Tuvalu", capital:"富那富提", continent:"大洋洲", pop:"1.1 萬", lang:"吐瓦魯語、英語", currency:"澳幣 (AUD)", flag:"淺藍底加聯合傑克，九顆金星依實際地理位置排列出九座環礁的相對位置，如同一張地圖。", fact:"世界人口最少的國家之一，靠出租「.tv」網域名稱獲得可觀收入，是臺灣的邦交國。" },
+  { code:"ki", zh:"吉里巴斯", en:"Kiribati", capital:"塔拉瓦", continent:"大洋洲", pop:"13 萬", lang:"吉里巴斯語、英語", currency:"澳幣 (AUD)", flag:"上半紅底繪金色軍艦鳥飛越旭日，下半藍白波浪代表太平洋；軍艦鳥象徵力量與自由。", fact:"世界唯一橫跨赤道且緊鄰國際換日線的國家，是全球最早迎接新年的地方之一。" },
+  { code:"nr", zh:"諾魯", en:"Nauru", capital:"雅連（政府所在地）", continent:"大洋洲", pop:"1.3 萬", lang:"諾魯語、英語", currency:"澳幣 (AUD)", flag:"藍底金色橫線代表赤道，左下的白色 12 角星標示諾魯位於赤道之南，12 個角代表 12 個原始部族。", fact:"世界最小的共和國與最小島國，曾因磷礦一度成為人均最富裕的國家之一。" },
+  { code:"pw", zh:"帛琉", en:"Palau", capital:"恩吉魯穆德", continent:"大洋洲", pop:"1.8 萬", lang:"帛琉語、英語", currency:"美元 (USD)", flag:"淺藍底上一輪金黃滿月：藍為太平洋與獨立，滿月象徵收穫與吉時——傳統上滿月是舉事的最佳時機。", fact:"潛水者的天堂，「無毒水母湖」可與數百萬隻水母共游，是臺灣的邦交國。" },
+  { code:"fm", zh:"密克羅尼西亞聯邦", en:"Micronesia", capital:"帕里克爾", continent:"大洋洲", pop:"11 萬", lang:"英語", currency:"美元 (USD)", flag:"淺藍底四顆白星代表四個州，藍色象徵太平洋。", fact:"由 607 座島嶼組成，橫跨約 2,700 公里的海域；楠馬托爾古城遺跡被稱「太平洋的威尼斯」。" },
+  { code:"mh", zh:"馬紹爾群島", en:"Marshall Islands", capital:"馬久羅", continent:"大洋洲", pop:"4.2 萬", lang:"馬紹爾語、英語", currency:"美元 (USD)", flag:"藍底上橙白放射條紋代表日出、勇氣與和平，24 角星代表 24 個選區，四個較長的角組成十字象徵信仰。", fact:"比基尼環礁曾是核子試爆場，「比基尼」泳裝之名便源自於此，是臺灣的邦交國。" },
+];
+
+const CONTINENT_KEY = c => c.continent.split("/")[0];
+const FLAG_URL = (code, w) => `https://flagcdn.com/w${w}/${code}.png`;
+
+// 簡單模式題庫：60 個較知名的國家
+const EASY_CODES = new Set([
+  "tw","jp","kr","cn","in","th","vn","sg","my","id","ph","sa","ae","il","tr","np","mn","kh",
+  "fr","de","gb","it","es","pt","nl","ch","se","no","fi","dk","gr","pl","at","cz","ie","is","ua","ru","be","hu",
+  "us","ca","mx","br","ar","cl","pe","co","cu",
+  "eg","za","ke","ma","ng","et","tz","gh",
+  "au","nz","fj",
+]);
+
+// 容易混淆的國旗分組（codes 內任一國答題後，資訊卡會列出同組其他國旗）
+const CONFUSE_GROUPS = [
+  { codes:["id","mc","pl","sg"], note:"印尼與摩納哥幾乎相同（僅長寬比例不同）；波蘭是上白下紅；新加坡左上多了新月與五星。" },
+  { codes:["nl","lu","ru"], note:"荷蘭與盧森堡差在藍色深淺（盧森堡較淺）；俄羅斯同為紅白藍，但順序是白、藍、紅。" },
+  { codes:["td","ro","md","ad"], note:"查德與羅馬尼亞幾乎完全相同（查德藍色較深）；摩爾多瓦與安道爾則多了中央國徽。" },
+  { codes:["ie","ci","it","mx"], note:"愛爾蘭（綠白橙）與象牙海岸（橙白綠）互為鏡像；義大利與墨西哥同為綠白紅，墨西哥中央多了鷹徽。" },
+  { codes:["ml","gn","sn","cm"], note:"同為泛非直條旗：馬利與幾內亞順序相反，塞內加爾中央多綠星，喀麥隆的星在中央紅條上。" },
+  { codes:["co","ec","ve"], note:"三國同源自大哥倫比亞：哥倫比亞素面、厄瓜多中央有大國徽、委內瑞拉多了八顆弧形星。" },
+  { codes:["ar","uy"], note:"同樣的「五月太陽」：阿根廷是藍白藍橫條、太陽在中央；烏拉圭是九道條紋、太陽在左上。" },
+  { codes:["au","nz","fj","tv"], note:"同有聯合傑克：澳洲是白色多角星、紐西蘭是四顆紅星、斐濟淺藍底加盾徽、吐瓦魯九顆星排成地圖。" },
+  { codes:["dk","no","se","fi","is"], note:"北歐十字家族：丹麥紅底白十字、瑞典藍底黃十字、芬蘭白底藍十字、挪威紅底白藍十字、冰島藍底白紅十字。" },
+  { codes:["us","lr","my"], note:"賴比瑞亞仿美國國旗（單顆星、11 條紋）；馬來西亞左上是新月與星、14 條紋。" },
+  { codes:["hn","sv","ni"], note:"同源自中美洲聯邦的藍白藍橫條：宏都拉斯是五顆星，薩爾瓦多與尼加拉瓜要看中央國徽細節。" },
+  { codes:["eg","ye","sy","iq"], note:"同為紅白黑橫條：埃及中央有金鷹、葉門素面、敘利亞有兩顆綠星、伊拉克是綠色阿拉伯文。" },
+  { codes:["jo","ps","kw","sd","ae"], note:"泛阿拉伯配色家族：約旦三角內有七角星、巴勒斯坦素面三角、蘇丹是綠色三角、科威特黑色梯形、阿聯是紅色直條。" },
+  { codes:["qa","bh"], note:"卡達是栗紫色、九個鋸齒且旗面較長；巴林是鮮紅色、五個鋸齒。" },
+  { codes:["in","ne"], note:"同為橙白綠橫條：印度中央是藍色 24 輻法輪，尼日中央是橙色圓（太陽）。" },
+  { codes:["hu","bg"], note:"匈牙利由上而下是紅白綠，保加利亞是白綠紅。" },
+  { codes:["cn","vn","ma"], note:"紅底星旗：中國是一大四小金星、越南是單顆大金星、摩洛哥是綠色五角星線框。" },
+  { codes:["jp","bd","pw"], note:"圓形旗家族：日本白底紅日、孟加拉綠底紅日、帛琉藍底黃色滿月。" },
+  { codes:["th","cr"], note:"同為紅白藍五橫條：泰國中間寬條是藍色，哥斯大黎加中間寬條是紅色。" },
+  { codes:["ht","li"], note:"1936 年奧運兩國才發現旗幟完全相同：同為藍紅橫條，後來海地加上國徽、列支敦斯登加上金冠。" },
+  { codes:["lt","mm","bo"], note:"黃綠紅色系橫條：立陶宛是黃綠紅、緬甸多了大白星、玻利維亞是紅黃綠（政府旗加國徽）。" },
+  { codes:["gh","et","gw"], note:"泛非紅黃綠橫條：迦納中央有黑星、衣索比亞中央是藍圓國徽、幾內亞比索左側紅條上有黑星。" },
+  { codes:["sk","si","hr","rs"], note:"同為泛斯拉夫紅白藍，靠國徽區分：斯洛伐克雙十字、斯洛維尼亞三峰山、克羅埃西亞紅白棋盤格、塞爾維亞雙頭鷹。" },
+  { codes:["tr","tn"], note:"紅底新月星：土耳其的月星偏左側直接放在紅底上，突尼西亞的月星在中央白色圓內。" },
+];
+const CONFUSE_MAP = {};
+CONFUSE_GROUPS.forEach(g => g.codes.forEach(c => { CONFUSE_MAP[c] = g; }));
+
+// 名字容易混淆的國家分組（中文或英文國名相近）
+const NAME_CONFUSE_GROUPS = [
+  { codes:["dm","do"], note:"多米尼克（Dominica）是東加勒比小島國、首都羅索；多明尼加（Dominican Republic）大得多、首都聖多明哥，兩國相距一千多公里。" },
+  { codes:["ne","ng"], note:"尼日（Niger）與奈及利亞（Nigeria）都因尼日河得名、英文只差兩個字母；尼日是內陸沙漠國，奈及利亞靠海且人口是非洲第一。" },
+  { codes:["gn","gw","gq","pg"], note:"四個「幾內亞」：幾內亞（Guinea）、幾內亞比索（Guinea-Bissau）、赤道幾內亞（Equatorial Guinea）都在非洲，巴布亞紐幾內亞（Papua New Guinea）卻遠在大洋洲。" },
+  { codes:["cd","cg"], note:"兩個剛果隔著剛果河相望：剛果民主共和國（首都金夏沙，面積大、舊稱薩伊）與剛果共和國（首都布拉薩市，面積小）。" },
+  { codes:["kr","kp"], note:"南韓正式國名是「大韓民國」（South Korea），北韓是「朝鮮民主主義人民共和國」（North Korea），1948 年起分治至今。" },
+  { codes:["sd","ss"], note:"南蘇丹（South Sudan）2011 年才從蘇丹（Sudan）獨立出來，是世界最年輕的國家。" },
+  { codes:["si","sk"], note:"斯洛維尼亞（Slovenia）與斯洛伐克（Slovakia）連國旗都像；兩國常收到彼此寄錯的郵件，據說使館人員會定期交換。" },
+  { codes:["at","au"], note:"奧地利（Austria）與澳洲（Australia）英文常被搞混，奧地利的紀念品店甚至賣「這裡沒有袋鼠」的 T 恤。" },
+  { codes:["ie","is"], note:"愛爾蘭（Ireland）與冰島（Iceland）英文只差一個字母；一個是溫帶翡翠島，一個是極圈附近的冰火之國。" },
+  { codes:["iq","ir"], note:"伊朗（Iran）與伊拉克（Iraq）英文只差最後一個字母；伊朗主體是波斯人、說波斯語，伊拉克主體是阿拉伯人。" },
+  { codes:["lv","lt"], note:"拉脫維亞（Latvia）與立陶宛（Lithuania）同為波羅的海三國鄰居，中英文名都常被唸混。" },
+  { codes:["sz","ch"], note:"史瓦帝尼舊名「史瓦濟蘭」（Swaziland），因為老是與瑞士（Switzerland）搞混，2018 年國王乾脆宣布改名 Eswatini。" },
+  { codes:["mu","mr"], note:"模里西斯（Mauritius）是印度洋度假島國；茅利塔尼亞（Mauritania）是西非撒哈拉沙漠國家，兩者英文開頭幾乎相同。" },
+  { codes:["gm","zm"], note:"甘比亞（Gambia）在西非、被塞內加爾包圍；尚比亞（Zambia）在非洲南部、有維多利亞瀑布——中英文都只差一個音。" },
+  { codes:["by","ru"], note:"白俄羅斯（Belarus）意為「白色的羅斯」，是獨立國家，不是俄羅斯（Russia）的一部分。" },
+  { codes:["in","id"], note:"印度（India）與印尼（Indonesia）：印尼的國名源自希臘語「印度群島」，但兩國相隔數千公里、文化迥異。" },
+];
+const NAME_CONFUSE_MAP = {};
+NAME_CONFUSE_GROUPS.forEach(g => g.codes.forEach(c => { NAME_CONFUSE_MAP[c] = g; }));
+
+let mode = "f2n";      // f2n: 看國旗猜國家, n2f: 看國名猜國旗
+let source = "easy";   // easy: 簡單 60 國, all: 全部, review: 錯題複習
+let inGallery = false; // 是否在圖鑑頁
+let current = null;
+let answered = false;
+let stats = { total: 0, correct: 0, streak: 0, best: 0 };
+
+// 持久化狀態：最佳連答、錯題本、圖鑑收集、題庫選擇、顯示設定
+const DEFAULT_SETTINGS = { en: true, speak: true, flagDesign: true, confuse: true };
+let store = { best: 0, wrong: {}, collected: [], source: "easy", settings: { ...DEFAULT_SETTINGS } };
+try {
+  const saved = JSON.parse(localStorage.getItem("country-quiz-v2"));
+  if (saved && typeof saved === "object") store = Object.assign(store, saved);
+  else {
+    // 由舊版資料遷移最佳連答紀錄
+    const old = JSON.parse(localStorage.getItem("country-quiz-stats"));
+    if (old && typeof old.best === "number") store.best = old.best;
+  }
+} catch (e) {}
+stats.best = store.best;
+source = ["easy", "all", "review"].includes(store.source) ? store.source : "easy";
+store.settings = Object.assign({ ...DEFAULT_SETTINGS }, store.settings || {});
+const collectedSet = new Set(store.collected);
+
+function applySettings() {
+  const s = store.settings;
+  document.body.classList.toggle("no-en", !s.en);
+  document.body.classList.toggle("no-speak", !s.speak);
+  document.body.classList.toggle("no-flagdesign", !s.flagDesign);
+  document.body.classList.toggle("no-confuse", !s.confuse);
+  $("set-en").checked = s.en;
+  $("set-speak").checked = s.speak;
+  $("set-flagdesign").checked = s.flagDesign;
+  $("set-confuse").checked = s.confuse;
+}
+
+function saveStore() {
+  store.best = stats.best;
+  store.collected = [...collectedSet];
+  store.source = source;
+  try { localStorage.setItem("country-quiz-v2", JSON.stringify(store)); } catch (e) {}
+}
+
+const $ = id => document.getElementById(id);
+
+// ===== 發音 =====
+// 1) 優先播放 audio/ 資料夾內的真人錄音（Wiktionary 志願者錄音，隨附於本專案，可離線使用）
+// 2) 沒有錄音檔或播放失敗（例如 Safari 不支援 ogg 格式）時，
+//    退回瀏覽器語音合成，並優先挑選最自然的 Natural／神經網路語音
+const LOCAL_AUDIO = window.LOCAL_AUDIO || {}; // code -> 檔名，由 audio/manifest.js 提供；缺檔時自動退回語音合成
+let currentAudio = null;
+
+function pickBestVoice() {
+  const voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+  return (
+    voices.find(v => /natural/i.test(v.name) && v.lang === "en-US") ||
+    voices.find(v => /natural|neural|online/i.test(v.name)) ||
+    voices.find(v => /Google US English/i.test(v.name)) ||
+    voices.find(v => v.lang === "en-US") ||
+    voices[0] || null
+  );
+}
+
+function speakTTS(text) {
+  if (!("speechSynthesis" in window)) {
+    alert("此瀏覽器不支援語音功能");
+    return;
+  }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.9;
+  const v = pickBestVoice();
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+
+function speak(country) {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  const file = LOCAL_AUDIO[country.code];
+  if (file) {
+    currentAudio = new Audio("audio/" + file);
+    currentAudio.onerror = () => speakTTS(country.en);
+    currentAudio.play().catch(() => speakTTS(country.en));
+  } else {
+    speakTTS(country.en);
+  }
+}
+// 某些瀏覽器需先觸發一次才載入語音清單
+if ("speechSynthesis" in window) {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function quizPool() {
+  if (source === "easy") return COUNTRIES.filter(c => EASY_CODES.has(c.code));
+  if (source === "review") return COUNTRIES.filter(c => store.wrong[c.code]);
+  return COUNTRIES;
+}
+
+function pickQuestion() {
+  const pool = quizPool();
+  const answer = pool[Math.floor(Math.random() * pool.length)];
+  // 干擾選項一律從全部國家挑，優先挑同洲的，增加挑戰性
+  const sameContinent = shuffle(COUNTRIES.filter(c => c !== answer && CONTINENT_KEY(c) === CONTINENT_KEY(answer)));
+  const others = shuffle(COUNTRIES.filter(c => c !== answer && CONTINENT_KEY(c) !== CONTINENT_KEY(answer)));
+  const distractors = sameContinent.concat(others).slice(0, 3);
+  return { answer, options: shuffle([answer, ...distractors]) };
+}
+
+function updateBadges() {
+  const n = Object.keys(store.wrong).length;
+  const badge = $("review-count");
+  badge.textContent = n;
+  badge.classList.toggle("hidden", n === 0);
+  if (!inGallery) $("gallery-btn").textContent = `📖 圖鑑 ${collectedSet.size}/${COUNTRIES.length}`;
+}
+
+function updateStats() {
+  $("stat-total").textContent = stats.total;
+  $("stat-correct").textContent = stats.correct;
+  $("stat-streak").textContent = stats.streak;
+  $("stat-best").textContent = stats.best;
+}
+
+// ===== 名詞小辭典：說明文字中的專有名詞，hover（手機為點擊）顯示解釋 =====
+const GLOSSARY = {
+  "聯合傑克": "英國國旗的暱稱（Union Jack），由英格蘭、蘇格蘭、愛爾蘭三面十字旗疊加而成；出現在其他國旗的角落，代表該國與英國的歷史淵源。",
+  "聖喬治十字": "白底紅色正十字，英格蘭的象徵，源自守護聖人聖喬治。",
+  "聖安德魯十字": "藍底白色斜十字（X 形），蘇格蘭的象徵；相傳聖安德魯殉道於 X 形十字架。",
+  "聖派翠克十字": "白底紅色斜十字，代表愛爾蘭的十字，以愛爾蘭守護聖人聖派翠克命名。",
+  "南十字星": "南半球最著名的星座，在北半球幾乎看不到；南太平洋國家常把它放上國旗，標示自己位於南半球。",
+  "泛非顏色": "紅、黃（金）、綠三色，源自非洲最古老獨立國衣索比亞的國旗，象徵非洲團結：紅為鮮血、黃為資源、綠為土地。",
+  "泛非": "紅、黃（金）、綠三色，源自非洲最古老獨立國衣索比亞的國旗，象徵非洲團結：紅為鮮血、黃為資源、綠為土地。",
+  "泛阿拉伯": "黑、白、綠、紅四色，源自 1916 年阿拉伯大起義的旗幟，各色對應歷史上不同的阿拉伯王朝。",
+  "泛斯拉夫": "白、藍、紅三色，源自俄羅斯國旗；19 世紀斯拉夫民族運動採用後，成為許多斯拉夫國家國旗的基礎。",
+  "北歐十字": "交叉點偏向旗桿側的十字圖形，源自丹麥國旗，象徵基督信仰；丹麥、瑞典、挪威、芬蘭、冰島五國全部採用。",
+  "新月": "伊斯蘭世界最常見的象徵，源自鄂圖曼帝國的旗幟，常與五角星並用。",
+  "鄂圖曼": "鄂圖曼帝國（1299–1922），以土耳其為中心統治中東、北非與巴爾幹長達六百年，其新月星旗影響眾多伊斯蘭國家的國旗。",
+  "阿拉伯大起義": "1916 年阿拉伯人反抗鄂圖曼帝國統治的起義，起義旗幟的黑、白、綠、紅四色後來被稱為「泛阿拉伯色彩」。",
+  "大哥倫比亞": "1819–1831 年短暫存在的南美大國，由解放者玻利瓦建立；解體後分為哥倫比亞、委內瑞拉、厄瓜多，三國國旗因此同源。",
+  "中美洲聯邦": "1823–1841 年的聯邦共和國，成員為瓜地馬拉、宏都拉斯、薩爾瓦多、尼加拉瓜、哥斯大黎加，因此五國國旗多為藍白藍。",
+  "三色旗": "三道等寬色帶的旗式，由荷蘭首創、經法國大革命發揚光大，成為共和與自由理念的象徵。",
+  "伊斯蘭五功": "穆斯林的五項基本功課：唸（信仰告白）、禮（每日禮拜）、齋（齋戒月）、課（濟貧）、朝（麥加朝覲）。",
+  "大衛之星": "六角星形，猶太民族與猶太教的象徵，名稱源自古以色列的大衛王。",
+  "五月革命": "1810 年 5 月布宜諾斯艾利斯的革命，拉開西屬南美獨立運動的序幕。",
+  "五月太陽": "阿根廷與烏拉圭國旗上有人臉的太陽，紀念 1810 年五月革命，形象源自印加太陽神因蒂。",
+  "五月的太陽": "阿根廷與烏拉圭國旗上有人臉的太陽，紀念 1810 年五月革命，形象源自印加太陽神因蒂。",
+  "海克力斯之柱": "直布羅陀海峽兩岸的岩山，希臘神話中海克力斯立於世界盡頭的雙柱；西班牙國徽上的箴言「更遠之地」即由此而來。",
+  "渾天儀": "大航海時代用於天文導航的儀器，象徵葡萄牙的航海霸業。",
+  "洛林雙十字": "有上下兩道橫臂的十字，源自匈牙利王國的紋章，斯洛伐克沿用至今。",
+  "索永布": "蒙古的民族符號，由火、太陽、月亮、矛箭與陰陽魚組成，象徵自由與永恆。",
+  "格查爾": "中美洲的鳳尾綠咬鵑，馬雅人視為神聖之鳥——被囚禁便無法存活，因此成為自由的象徵。",
+  "太極": "陰陽相生的東方哲學符號，紅藍兩色代表陰與陽的調和。",
+  "軍艦鳥": "大型熱帶海鳥，展翅可超過兩公尺，能長時間翱翔海上，是吉里巴斯的國鳥。",
+  "聯合國藍": "聯合國旗幟使用的淺藍色，象徵和平。",
+};
+const TERM_RE = new RegExp(
+  Object.keys(GLOSSARY).sort((a, b) => b.length - a.length).join("|"), "g");
+
+function annotate(text) {
+  return (text || "").replace(TERM_RE, m => `<span class="term" data-tip="${GLOSSARY[m]}">${m}</span>`);
+}
+
+// 行動裝置沒有 hover：點擊名詞切換解釋泡泡
+document.addEventListener("click", e => {
+  const t = e.target.closest(".term");
+  document.querySelectorAll(".term.show").forEach(x => { if (x !== t) x.classList.remove("show"); });
+  if (t) t.classList.toggle("show");
+});
+
+// 渲染「容易混淆」區塊：boxId 為區塊 id，withEn 決定卡片是否附英文國名
+function renderConfuse(boxId, grp, currentCode, withEn) {
+  const box = $(boxId);
+  if (!grp) {
+    box.classList.add("hidden");
+    return;
+  }
+  const grid = $(boxId + "-grid");
+  grid.innerHTML = "";
+  grp.codes.filter(k => k !== currentCode).forEach(k => {
+    const cc = COUNTRIES.find(x => x.code === k);
+    if (!cc) return;
+    const card = document.createElement("div");
+    card.className = "ccard";
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = FLAG_URL(k, 160);
+    img.alt = cc.zh;
+    const nm = document.createElement("div");
+    nm.className = "cnm";
+    nm.textContent = cc.zh;
+    card.appendChild(img);
+    card.appendChild(nm);
+    if (withEn) {
+      const en = document.createElement("div");
+      en.className = "cen";
+      en.textContent = cc.en;
+      card.appendChild(en);
+    }
+    grid.appendChild(card);
+  });
+  $(boxId + "-note").innerHTML = annotate(grp.note);
+  box.classList.remove("hidden");
+}
+
+let infoCountry = null; // 資訊卡目前顯示的國家（供 🔊 使用）
+function showInfo(c, fromGallery) {
+  infoCountry = c;
+  $("next").classList.toggle("hidden", !!fromGallery);
+  $("info-name").textContent = c.zh;
+  $("info-en").textContent = c.en;
+  $("info-capital").textContent = c.capital;
+  $("info-continent").textContent = c.continent;
+  $("info-pop").textContent = c.pop;
+  $("info-lang").textContent = c.lang;
+  $("info-currency").textContent = c.currency;
+  $("info-fact").innerHTML = annotate(c.fact);
+  $("info-flagdesign").innerHTML = annotate(c.flag);
+  // 容易混淆的國旗／名字
+  renderConfuse("confuse", CONFUSE_MAP[c.code], c.code, false);
+  renderConfuse("nconfuse", NAME_CONFUSE_MAP[c.code], c.code, true);
+  $("info").classList.remove("hidden");
+  $("info").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function onAnswer(chosen, btn) {
+  if (answered) return;
+  answered = true;
+  stats.total++;
+  const buttons = $("options").querySelectorAll("button");
+  const hoverable = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  buttons.forEach(b => {
+    b.classList.add("answered"); // 用 class 取代 disabled，觸控裝置作答後才點得到選項
+    if (b.dataset.code === current.answer.code) b.classList.add("correct");
+    // 看國旗猜國家模式：作答後可看各選項的國旗（電腦 hover、手機點擊）
+    if (mode === "f2n") {
+      const tip = document.createElement("span");
+      tip.className = "flag-tip";
+      const img = document.createElement("img");
+      img.src = FLAG_URL(b.dataset.code, 160);
+      img.srcset = `${FLAG_URL(b.dataset.code, 320)} 2x`;
+      img.alt = "國旗";
+      tip.appendChild(img);
+      b.appendChild(tip);
+      if (!hoverable) {
+        b.addEventListener("click", () => {
+          const showing = b.classList.contains("show-tip");
+          buttons.forEach(x => x.classList.remove("show-tip"));
+          if (!showing) b.classList.add("show-tip");
+        });
+      }
+    }
+  });
+  const banner = $("banner");
+  const code = current.answer.code;
+  if (chosen.code === code) {
+    stats.correct++;
+    stats.streak++;
+    if (stats.streak > stats.best) stats.best = stats.streak;
+    let msg = "🎉 答對了！";
+    // 圖鑑收集：第一次答對就點亮
+    if (!collectedSet.has(code)) {
+      collectedSet.add(code);
+      msg += "（圖鑑新收集 ✨）";
+    }
+    // 錯題本：答對一次扣 1，扣到 0 移除
+    if (store.wrong[code]) {
+      store.wrong[code]--;
+      if (store.wrong[code] <= 0) {
+        delete store.wrong[code];
+        msg += "（已從錯題本移除 ✅）";
+      } else {
+        msg += `（錯題本：再答對 ${store.wrong[code]} 次即移除）`;
+      }
+    }
+    banner.textContent = msg;
+    banner.className = "result-banner ok";
+  } else {
+    stats.streak = 0;
+    btn.classList.add("wrong");
+    // 加入錯題本：需連續答對 2 次才移除
+    store.wrong[code] = 2;
+    banner.textContent = (mode === "f2n"
+      ? `❌ 答錯了，正確答案是「${current.answer.zh}」`
+      : "❌ 答錯了，綠框才是正確的國旗") + "（已加入錯題本）";
+    banner.className = "result-banner ng";
+  }
+  saveStore();
+  updateStats();
+  updateBadges();
+  showInfo(current.answer);
+}
+
+function nextQuestion() {
+  answered = false;
+  $("banner").textContent = "";
+  $("banner").className = "result-banner";
+  $("info").classList.add("hidden");
+
+  const box = $("options");
+  box.innerHTML = "";
+
+  // 錯題本清空時的提示畫面
+  if (!quizPool().length) {
+    current = null;
+    answered = true;
+    $("flag-wrap").classList.add("hidden");
+    $("target-name").classList.add("hidden");
+    $("target-en").classList.add("hidden");
+    $("question").textContent = "🎉 錯題本是空的！答錯的題目會自動加進來，切換其他題庫繼續練習吧";
+    return;
+  }
+  current = pickQuestion();
+
+  if (mode === "f2n") {
+    // 看國旗猜國家
+    $("flag-wrap").classList.remove("hidden");
+    $("target-name").classList.add("hidden");
+    $("target-en").classList.add("hidden");
+    $("question").textContent = "這是哪一個國家的國旗？";
+    $("flag").src = FLAG_URL(current.answer.code, 320);
+    $("flag").srcset = `${FLAG_URL(current.answer.code, 640)} 2x`;
+    box.classList.remove("flag-opts");
+    current.options.forEach(c => {
+      const btn = document.createElement("button");
+      const zhSpan = document.createElement("span");
+      zhSpan.textContent = c.zh;
+      const enSpan = document.createElement("span");
+      enSpan.className = "opt-en";
+      enSpan.textContent = c.en;
+      btn.appendChild(zhSpan);
+      btn.appendChild(enSpan);
+      btn.dataset.code = c.code;
+      btn.addEventListener("click", () => onAnswer(c, btn));
+      box.appendChild(btn);
+    });
+  } else {
+    // 看國名猜國旗
+    $("flag-wrap").classList.add("hidden");
+    $("target-name").classList.remove("hidden");
+    $("target-name").textContent = current.answer.zh;
+    $("target-en").classList.remove("hidden");
+    $("target-en-text").textContent = current.answer.en;
+    $("question").textContent = "下面哪一面是它的國旗？";
+    box.classList.add("flag-opts");
+    current.options.forEach(c => {
+      const btn = document.createElement("button");
+      const img = document.createElement("img");
+      img.src = FLAG_URL(c.code, 320);
+      img.srcset = `${FLAG_URL(c.code, 640)} 2x`;
+      img.alt = "國旗選項";
+      btn.appendChild(img);
+      btn.dataset.code = c.code;
+      btn.addEventListener("click", () => onAnswer(c, btn));
+      box.appendChild(btn);
+    });
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function setMode(m) {
+  if (mode === m) return;
+  mode = m;
+  $("mode-f2n").classList.toggle("active", m === "f2n");
+  $("mode-n2f").classList.toggle("active", m === "n2f");
+  nextQuestion();
+}
+
+function setSource(s) {
+  source = s;
+  ["easy", "all", "review"].forEach(k => $("src-" + k).classList.toggle("active", k === s));
+  saveStore();
+  if (inGallery) toggleGallery(); // 切題庫時回到測驗頁
+  else nextQuestion();
+}
+
+// ===== 圖鑑 =====
+const CONT_ORDER = ["亞洲", "歐洲", "北美洲", "南美洲", "非洲", "大洋洲"];
+
+function renderGallery() {
+  const g = $("gallery");
+  g.innerHTML = "";
+  const prog = document.createElement("div");
+  prog.className = "progress";
+  prog.textContent = `已收集 ${collectedSet.size} / ${COUNTRIES.length} 國（答對一次即點亮，點擊已點亮的國旗可查看資料）`;
+  g.appendChild(prog);
+  CONT_ORDER.forEach(cont => {
+    const list = COUNTRIES.filter(c => CONTINENT_KEY(c) === cont);
+    const got = list.filter(c => collectedSet.has(c.code)).length;
+    const title = document.createElement("div");
+    title.className = "continent-title";
+    title.textContent = `${cont}（${got}/${list.length}）`;
+    g.appendChild(title);
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    list.forEach(c => {
+      const unlocked = collectedSet.has(c.code);
+      const card = document.createElement("div");
+      card.className = "card " + (unlocked ? "unlocked" : "locked");
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.src = FLAG_URL(c.code, 160);
+      img.alt = "";
+      const nm = document.createElement("div");
+      nm.className = "nm";
+      nm.textContent = unlocked ? c.zh : "？？？";
+      card.appendChild(img);
+      card.appendChild(nm);
+      if (unlocked) card.addEventListener("click", () => showInfo(c, true));
+      grid.appendChild(card);
+    });
+    g.appendChild(grid);
+  });
+}
+
+function toggleGallery() {
+  inGallery = !inGallery;
+  document.querySelector(".quiz-card").classList.toggle("hidden", inGallery);
+  $("gallery").classList.toggle("hidden", !inGallery);
+  $("info").classList.add("hidden");
+  if (inGallery) {
+    renderGallery();
+    $("gallery-btn").textContent = "⬅ 返回測驗";
+    window.scrollTo({ top: 0 });
+  } else {
+    updateBadges();
+    nextQuestion();
+  }
+}
+
+$("mode-f2n").addEventListener("click", () => setMode("f2n"));
+$("mode-n2f").addEventListener("click", () => setMode("n2f"));
+$("src-easy").addEventListener("click", () => setSource("easy"));
+$("src-all").addEventListener("click", () => setSource("all"));
+$("src-review").addEventListener("click", () => setSource("review"));
+$("gallery-btn").addEventListener("click", toggleGallery);
+$("settings-btn").addEventListener("click", () => $("settings-modal").classList.remove("hidden"));
+$("settings-close").addEventListener("click", () => $("settings-modal").classList.add("hidden"));
+$("settings-modal").addEventListener("click", e => {
+  if (e.target === $("settings-modal")) $("settings-modal").classList.add("hidden");
+});
+[["set-en","en"],["set-speak","speak"],["set-flagdesign","flagDesign"],["set-confuse","confuse"]].forEach(([id, key]) => {
+  $(id).addEventListener("change", () => {
+    store.settings[key] = $(id).checked;
+    applySettings();
+    saveStore();
+  });
+});
+$("speak-info").addEventListener("click", () => { if (infoCountry) speak(infoCountry); });
+$("speak-target").addEventListener("click", () => { if (current) speak(current.answer); });
+$("next").addEventListener("click", nextQuestion);
+document.addEventListener("keydown", e => {
+  if (!inGallery && answered && current && (e.key === "Enter" || e.key === " ")) {
+    e.preventDefault();
+    nextQuestion();
+  }
+});
+
+$("country-count").textContent = `收錄全世界 ${COUNTRIES.length} 個國家（聯合國會員國＋臺灣、梵蒂岡、巴勒斯坦、科索沃）`;
+["easy", "all", "review"].forEach(k => $("src-" + k).classList.toggle("active", k === source));
+applySettings();
+updateStats();
+updateBadges();
+nextQuestion();
+</script>
+</body>
+</html>
