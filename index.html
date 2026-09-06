@@ -234,6 +234,19 @@
     from { transform: scale(.5); opacity: 1; }
     to { transform: scale(2.4); opacity: 0; }
   }
+  /* 選項的鍵盤快捷鍵提示（觸控裝置沒有鍵盤，不顯示） */
+  .opt-key {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: .7rem;
+    color: var(--muted);
+    background: rgba(11,18,32,.55);
+    border-radius: 6px;
+    padding: 1px 6px;
+    pointer-events: none;
+  }
+  @media (hover: none) and (pointer: coarse) { .opt-key { display: none; } }
   .result-banner {
     text-align: center;
     font-size: 1.2rem;
@@ -513,6 +526,7 @@
     <div class="item"><div class="label">人口（約）</div><div class="value" id="info-pop"></div></div>
     <div class="item"><div class="label">主要語言</div><div class="value" id="info-lang"></div></div>
     <div class="item"><div class="label">貨幣</div><div class="value" id="info-currency"></div></div>
+    <div class="item"><div class="label">主要宗教</div><div class="value" id="info-religion"></div></div>
   </div>
   <div class="map-sec hidden" id="map-sec">
     <div class="map-title">🗺️ 地理位置 — <span id="map-caption"></span></div>
@@ -870,19 +884,31 @@ function featureAt(lon, lat) {
   return null;
 }
 
-function drawMap(canvas, dot, b, pos, target, sh) {
+function drawMap(canvas, dot, b, pos, target, sh, merc) {
   const cssW = canvas.parentElement.clientWidth || 300;
-  const dLon = b[1] - b[0], dLat = b[3] - b[2];
-  const cssH = Math.round(cssW * dLat / dLon);
+  let X, Y, cssH;
+  if (merc) {
+    // 麥卡托投影（Google 地圖同款），形狀不失真
+    const rad = d => d * Math.PI / 180;
+    const mY = lat => Math.log(Math.tan(Math.PI / 4 + rad(Math.max(-84, Math.min(84, lat))) / 2));
+    const x0 = rad(b[0]), yTop = mY(b[3]);
+    const s = cssW / (rad(b[1]) - x0);
+    cssH = Math.round((yTop - mY(b[2])) * s);
+    X = lon => (rad(sh(lon)) - x0) * s;
+    Y = lat => (yTop - mY(lat)) * s;
+  } else {
+    // 等距圓柱投影（世界全圖用，緯度均勻好對照）
+    const s = cssW / (b[1] - b[0]);
+    cssH = Math.round((b[3] - b[2]) * s);
+    X = lon => (sh(lon) - b[0]) * s;
+    Y = lat => (b[3] - lat) * s;
+  }
   const dpr = window.devicePixelRatio || 1;
   canvas.style.height = cssH + "px";
   canvas.width = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
   const ctx = canvas.getContext("2d");
   ctx.scale(dpr, dpr);
-  const s = cssW / dLon;
-  const X = lon => (sh(lon) - b[0]) * s;
-  const Y = lat => (b[3] - lat) * s;
   ctx.fillStyle = "#0b1220";
   ctx.fillRect(0, 0, cssW, cssH);
   const drawFeature = (f, fill, stroke) => {
@@ -925,9 +951,56 @@ async function renderMaps(c) {
   $("map-zoom-tag").textContent = "📍 " + key;
   const target = NO_SHAPE.has(c.code) ? null : featureAt(pos[1], pos[0]);
   const shOce = lon => lon < -30 ? lon + 360 : lon;
-  drawMap($("map-world"), $("dot-world"), WORLD_BOUNDS, pos, target, lon => lon);
-  drawMap($("map-zoom"), $("dot-zoom"), CONT_BOUNDS[key], pos, target, key === "大洋洲" ? shOce : (lon => lon));
+  drawMap($("map-world"), $("dot-world"), WORLD_BOUNDS, pos, target, lon => lon, false);
+  drawMap($("map-zoom"), $("dot-zoom"), CONT_BOUNDS[key], pos, target, key === "大洋洲" ? shOce : (lon => lon), true);
 }
+
+// 各國主要宗教
+const RELIGIONS = {
+  tw:"佛教、道教、民間信仰", jp:"神道教、佛教", kr:"基督新教、佛教（多數無宗教）", kp:"官方無神論",
+  cn:"民間信仰、佛教（多數無宗教）", in:"印度教、伊斯蘭教", th:"上座部佛教", vn:"民間信仰、佛教",
+  sg:"佛教、基督宗教、伊斯蘭教", my:"伊斯蘭教（國教）", id:"伊斯蘭教（穆斯林人口全球最多）", ph:"天主教",
+  bn:"伊斯蘭教（國教）", la:"上座部佛教", mm:"上座部佛教", kh:"上座部佛教（國教）", tl:"天主教",
+  bd:"伊斯蘭教（國教）", pk:"伊斯蘭教（國教）", lk:"佛教、印度教", mv:"伊斯蘭教（國教）", bt:"藏傳佛教",
+  np:"印度教、佛教", af:"伊斯蘭教", ir:"伊斯蘭教（什葉派，國教）", iq:"伊斯蘭教（什葉派為主）",
+  sy:"伊斯蘭教（遜尼派為主）", jo:"伊斯蘭教（遜尼派）", lb:"伊斯蘭教與基督宗教並存", il:"猶太教",
+  ps:"伊斯蘭教（遜尼派）", sa:"伊斯蘭教（遜尼派，國教）", ae:"伊斯蘭教（國教）", kw:"伊斯蘭教（國教）",
+  qa:"伊斯蘭教（國教）", bh:"伊斯蘭教", om:"伊斯蘭教（伊巴德派）", ye:"伊斯蘭教", tr:"伊斯蘭教（世俗國家）",
+  cy:"希臘正教會", ge:"喬治亞正教會", am:"亞美尼亞使徒教會", az:"伊斯蘭教（什葉派）", kz:"伊斯蘭教（遜尼派）",
+  uz:"伊斯蘭教（遜尼派）", tm:"伊斯蘭教（遜尼派）", kg:"伊斯蘭教（遜尼派）", tj:"伊斯蘭教（遜尼派）", mn:"藏傳佛教",
+  fr:"天主教（世俗化程度高）", de:"基督宗教（天主教與新教）", gb:"基督宗教（聖公會）", it:"天主教", es:"天主教",
+  pt:"天主教", nl:"多數無宗教、天主教", be:"天主教", lu:"天主教", ch:"天主教與新教", at:"天主教",
+  li:"天主教（國教）", mc:"天主教（國教）", ad:"天主教", sm:"天主教", va:"天主教（教宗駐地）",
+  mt:"天主教（國教）", se:"路德宗（世俗化程度高）", no:"路德宗", fi:"路德宗", dk:"路德宗", is:"路德宗",
+  ie:"天主教", gr:"希臘正教會（國教）", pl:"天主教", cz:"多數無宗教、天主教", sk:"天主教", hu:"天主教",
+  si:"天主教", hr:"天主教", ba:"伊斯蘭教、正教會、天主教", rs:"塞爾維亞正教會", me:"正教會",
+  mk:"正教會、伊斯蘭教", al:"伊斯蘭教、基督宗教（世俗）", xk:"伊斯蘭教", bg:"保加利亞正教會",
+  ro:"羅馬尼亞正教會", md:"正教會", ua:"正教會", by:"正教會", ru:"俄羅斯正教會", lt:"天主教",
+  lv:"路德宗、天主教、正教會", ee:"多數無宗教、路德宗",
+  us:"基督新教、天主教", ca:"天主教、基督新教", mx:"天主教", gt:"天主教、福音派新教", bz:"天主教、新教",
+  sv:"天主教、福音派新教", hn:"天主教、福音派新教", ni:"天主教、福音派新教", cr:"天主教（國教）", pa:"天主教",
+  cu:"天主教、非裔民間信仰", bs:"基督新教", jm:"基督新教", ht:"天主教、巫毒教", do:"天主教",
+  kn:"基督新教", ag:"基督新教", dm:"天主教", lc:"天主教", vc:"基督新教", bb:"基督新教（聖公會）",
+  gd:"天主教", tt:"基督宗教、印度教",
+  br:"天主教（天主教徒全球最多）", ar:"天主教", cl:"天主教", pe:"天主教", co:"天主教", ve:"天主教",
+  ec:"天主教", bo:"天主教（融合原住民信仰）", py:"天主教", uy:"天主教（南美世俗化最深）",
+  gy:"基督宗教、印度教", sr:"基督宗教、印度教、伊斯蘭教",
+  eg:"伊斯蘭教、科普特正教會", dz:"伊斯蘭教（國教）", tn:"伊斯蘭教（國教）", ly:"伊斯蘭教（遜尼派）",
+  ma:"伊斯蘭教（國教）", sd:"伊斯蘭教（遜尼派）", ss:"基督宗教、傳統信仰", er:"正教會與伊斯蘭教各半",
+  dj:"伊斯蘭教（國教）", so:"伊斯蘭教（國教）", et:"衣索比亞正教會、伊斯蘭教", ke:"基督宗教", ug:"基督宗教",
+  rw:"天主教、新教", bi:"天主教", tz:"基督宗教與伊斯蘭教並存", cd:"天主教、新教", cg:"基督宗教",
+  ga:"基督宗教", gq:"天主教", cm:"基督宗教、伊斯蘭教", cf:"基督宗教", td:"伊斯蘭教、基督宗教",
+  ne:"伊斯蘭教（遜尼派）", ml:"伊斯蘭教（遜尼派）", bf:"伊斯蘭教、天主教", sn:"伊斯蘭教（蘇菲派為主）",
+  gm:"伊斯蘭教", gw:"伊斯蘭教、傳統信仰", gn:"伊斯蘭教", sl:"伊斯蘭教（以宗教和諧著稱）", lr:"基督宗教",
+  ci:"伊斯蘭教、基督宗教", gh:"基督宗教", tg:"基督宗教、傳統信仰", bj:"天主教、巫毒教（發源地）",
+  ng:"伊斯蘭教（北部）與基督宗教（南部）", mr:"伊斯蘭教（國教）", cv:"天主教", st:"天主教", ao:"基督宗教",
+  zm:"基督宗教（憲法明定）", mw:"基督宗教", mz:"基督宗教、伊斯蘭教", zw:"基督宗教", bw:"基督宗教",
+  na:"基督宗教（路德宗為主）", sz:"基督宗教", ls:"基督宗教", mg:"基督宗教、傳統信仰",
+  mu:"印度教、基督宗教、伊斯蘭教", sc:"天主教", km:"伊斯蘭教（國教）", za:"基督宗教",
+  au:"基督宗教（無宗教漸增）", nz:"基督宗教（約半數無宗教）", pg:"基督宗教", fj:"基督宗教、印度教",
+  sb:"基督宗教", vu:"基督宗教", ws:"基督宗教", to:"基督宗教（衛理宗）", tv:"基督宗教", ki:"天主教、新教",
+  nr:"基督宗教", pw:"天主教", fm:"基督宗教", mh:"基督宗教",
+};
 
 // 簡單模式題庫：60 個較知名的國家
 const EASY_CODES = new Set([
@@ -1216,6 +1289,7 @@ function showInfo(c, fromGallery) {
   $("info-pop").textContent = c.pop;
   $("info-lang").textContent = c.lang;
   $("info-currency").textContent = c.currency;
+  $("info-religion").textContent = RELIGIONS[c.code] || "—";
   $("info-fact").innerHTML = annotate(c.fact);
   $("info-flagdesign").innerHTML = annotate(c.flag);
   // 容易混淆的國旗／名字
@@ -1325,7 +1399,7 @@ function nextQuestion() {
     $("flag").src = FLAG_URL(current.answer.code, 320);
     $("flag").srcset = `${FLAG_URL(current.answer.code, 640)} 2x`;
     box.classList.remove("flag-opts");
-    current.options.forEach(c => {
+    current.options.forEach((c, i) => {
       const btn = document.createElement("button");
       const zhSpan = document.createElement("span");
       zhSpan.textContent = c.zh;
@@ -1334,6 +1408,10 @@ function nextQuestion() {
       enSpan.textContent = c.en;
       btn.appendChild(zhSpan);
       btn.appendChild(enSpan);
+      const keySpan = document.createElement("span");
+      keySpan.className = "opt-key";
+      keySpan.textContent = i + 1;
+      btn.appendChild(keySpan);
       btn.dataset.code = c.code;
       btn.addEventListener("click", () => onAnswer(c, btn));
       box.appendChild(btn);
@@ -1347,13 +1425,17 @@ function nextQuestion() {
     $("target-en-text").textContent = current.answer.en;
     $("question").textContent = "下面哪一面是它的國旗？";
     box.classList.add("flag-opts");
-    current.options.forEach(c => {
+    current.options.forEach((c, i) => {
       const btn = document.createElement("button");
       const img = document.createElement("img");
       img.src = FLAG_URL(c.code, 320);
       img.srcset = `${FLAG_URL(c.code, 640)} 2x`;
       img.alt = "國旗選項";
       btn.appendChild(img);
+      const keySpan = document.createElement("span");
+      keySpan.className = "opt-key";
+      keySpan.textContent = i + 1;
+      btn.appendChild(keySpan);
       btn.dataset.code = c.code;
       btn.addEventListener("click", () => onAnswer(c, btn));
       box.appendChild(btn);
@@ -1454,9 +1536,14 @@ $("speak-info").addEventListener("click", () => { if (infoCountry) speak(infoCou
 $("speak-target").addEventListener("click", () => { if (current) speak(current.answer); });
 $("next").addEventListener("click", nextQuestion);
 document.addEventListener("keydown", e => {
-  if (!inGallery && answered && current && (e.key === "Enter" || e.key === " ")) {
+  if (inGallery || !current || !$("settings-modal").classList.contains("hidden")) return;
+  if (answered && (e.key === "Enter" || e.key === " ")) {
     e.preventDefault();
     nextQuestion();
+  } else if (!answered && ["1", "2", "3", "4"].includes(e.key)) {
+    // 數字鍵 1～4 選答案（含數字鍵盤）
+    const btn = $("options").querySelectorAll("button")[+e.key - 1];
+    if (btn) btn.click();
   }
 });
 
