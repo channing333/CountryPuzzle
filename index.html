@@ -270,8 +270,165 @@
     from { opacity: 0; transform: translateY(16px); }
     to { opacity: 1; transform: translateY(0); }
   }
+  .info-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .info-flag {
+    width: 96px;
+    max-height: 68px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(0,0,0,.4);
+    flex-shrink: 0;
+  }
+  .info-title-wrap { flex: 1; min-width: 160px; }
   .info-card h2 { font-size: 1.3rem; margin-bottom: 4px; }
-  .info-card .en-name { color: var(--muted); font-size: .95rem; margin-bottom: 16px; }
+  .info-card .en-name { color: var(--muted); font-size: .95rem; margin-bottom: 0; }
+  .back-quiz-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: .9rem;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .back-quiz-btn:hover {
+    background: var(--accent);
+    color: #082f49;
+    font-weight: bold;
+  }
+  /* 國家搜尋列與關鍵字提示 */
+  .search-wrap {
+    width: 100%;
+    max-width: 640px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: var(--card);
+    border: 2px solid var(--card-2);
+    border-radius: 999px;
+    padding: 6px 14px;
+    gap: 8px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .search-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56,189,248,.2);
+  }
+  .search-icon {
+    font-size: 1rem;
+    color: var(--muted);
+    user-select: none;
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: .98rem;
+    outline: none;
+    padding: 4px 0;
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-clear {
+    border: none;
+    background: var(--card-2);
+    color: var(--muted);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: .8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .15s, background .15s;
+  }
+  .search-clear:hover { color: var(--text); background: #3b4d68; }
+  .search-suggest {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #131d31;
+    border: 1px solid var(--card-2);
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(0,0,0,.65);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 80;
+    padding: 6px;
+  }
+  .search-suggest-header {
+    font-size: .76rem;
+    color: var(--muted);
+    padding: 4px 10px 6px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    margin-bottom: 4px;
+  }
+  .sug-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .1s;
+  }
+  .sug-item:hover, .sug-item.active {
+    background: var(--card-2);
+  }
+  .sug-flag {
+    width: 40px;
+    height: 27px;
+    object-fit: contain;
+    background: #fff;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .sug-names {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+  }
+  .sug-zh { font-size: .98rem; font-weight: bold; color: var(--text); }
+  .sug-en { font-size: .85rem; color: var(--muted); }
+  .sug-cont {
+    font-size: .75rem;
+    color: var(--accent);
+    background: rgba(56,189,248,.12);
+    padding: 2px 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+  .sug-item mark {
+    background: rgba(56,189,248,.28);
+    color: #7dd3fc;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: bold;
+  }
+  .sug-empty {
+    padding: 14px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .9rem;
+  }
   .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -387,7 +544,23 @@
     gap: 10px;
     margin-bottom: 10px;
   }
-  .confuse-grid .ccard { text-align: center; }
+  .confuse-grid .ccard {
+    text-align: center;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: transform .15s, background .15s;
+  }
+  .confuse-grid .ccard:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,.06);
+  }
+  .confuse-grid .ccard:hover img {
+    outline: 2px solid var(--accent);
+  }
+  .confuse-grid .ccard:hover .cnm {
+    color: var(--accent);
+  }
   .confuse-grid img {
     width: 100%;
     aspect-ratio: 4 / 2.7;
@@ -508,6 +681,15 @@
   <button class="gallery-btn" id="settings-btn" title="設定">⚙️</button>
 </div>
 
+<div class="search-wrap" id="search-wrap">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" id="country-search" placeholder="輸入中／英文國家名稱查找介紹（例：臺灣、韓、Korea、land）…" autocomplete="off" />
+    <button class="search-clear hidden" id="search-clear" title="清除">✕</button>
+  </div>
+  <div class="search-suggest hidden" id="search-suggest"></div>
+</div>
+
 <div class="quiz-card">
   <div class="flag-wrap" id="flag-wrap"><img id="flag" alt="國旗" /></div>
   <div class="target-name hidden" id="target-name"></div>
@@ -518,8 +700,14 @@
 </div>
 
 <div class="info-card hidden" id="info">
-  <h2 id="info-name"></h2>
-  <div class="en-name"><span id="info-en"></span><button class="speak-btn" id="speak-info" title="唸出英文發音">🔊</button></div>
+  <div class="info-top">
+    <img id="info-flag" class="info-flag" alt="國旗" />
+    <div class="info-title-wrap">
+      <h2 id="info-name"></h2>
+      <div class="en-name"><span id="info-en"></span><button class="speak-btn" id="speak-info" title="唸出英文發音">🔊</button></div>
+    </div>
+    <button class="back-quiz-btn hidden" id="info-back-btn">⬅ 返回測驗</button>
+  </div>
   <div class="info-grid">
     <div class="item"><div class="label">首都</div><div class="value" id="info-capital"></div></div>
     <div class="item"><div class="label">所在洲</div><div class="value" id="info-continent"></div></div>
@@ -1066,6 +1254,7 @@ NAME_CONFUSE_GROUPS.forEach(g => g.codes.forEach(c => { NAME_CONFUSE_MAP[c] = g;
 let mode = "f2n";      // f2n: 看國旗猜國家, n2f: 看國名猜國旗
 let source = "easy";   // easy: 簡單 60 國, all: 全部, review: 錯題複習
 let inGallery = false; // 是否在圖鑑頁
+let inSearch = false;  // 是否在國家查詢檢視模式
 let current = null;
 let answered = false;
 let stats = { total: 0, correct: 0, streak: 0, best: 0 };
@@ -1257,6 +1446,7 @@ function renderConfuse(boxId, grp, currentCode, withEn) {
     if (!cc) return;
     const card = document.createElement("div");
     card.className = "ccard";
+    card.title = `點擊查看「${cc.zh}」介紹`;
     const img = document.createElement("img");
     img.loading = "lazy";
     img.src = FLAG_URL(k, 160);
@@ -1272,6 +1462,7 @@ function renderConfuse(boxId, grp, currentCode, withEn) {
       en.textContent = cc.en;
       card.appendChild(en);
     }
+    card.addEventListener("click", () => selectSearchCountry(cc));
     grid.appendChild(card);
   });
   $(boxId + "-note").innerHTML = annotate(grp.note);
@@ -1279,9 +1470,13 @@ function renderConfuse(boxId, grp, currentCode, withEn) {
 }
 
 let infoCountry = null; // 資訊卡目前顯示的國家（供 🔊 使用）
-function showInfo(c, fromGallery) {
+function showInfo(c, fromLookup) {
   infoCountry = c;
-  $("next").classList.toggle("hidden", !!fromGallery);
+  $("next").classList.toggle("hidden", !!fromLookup);
+  $("info-back-btn").classList.toggle("hidden", !inSearch);
+  $("info-flag").src = FLAG_URL(c.code, 320);
+  $("info-flag").srcset = `${FLAG_URL(c.code, 640)} 2x`;
+  $("info-flag").alt = c.zh + "國旗";
   $("info-name").textContent = c.zh;
   $("info-en").textContent = c.en;
   $("info-capital").textContent = c.capital;
@@ -1298,7 +1493,7 @@ function showInfo(c, fromGallery) {
   // 地理位置地圖
   renderMaps(c);
   $("info").classList.remove("hidden");
-  $("info").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("info").scrollIntoView({ behavior: "smooth", block: fromLookup ? "start" : "nearest" });
 }
 
 function onAnswer(chosen, btn) {
@@ -1445,7 +1640,18 @@ function nextQuestion() {
 }
 
 function setMode(m) {
-  if (mode === m) return;
+  const wasInSearch = inSearch;
+  if (inSearch) exitSearch();
+  if (inGallery) {
+    inGallery = false;
+    $("gallery").classList.add("hidden");
+    document.querySelector(".quiz-card").classList.remove("hidden");
+    updateBadges();
+  }
+  if (mode === m) {
+    if (!wasInSearch && !current) nextQuestion();
+    return;
+  }
   mode = m;
   $("mode-f2n").classList.toggle("active", m === "f2n");
   $("mode-n2f").classList.toggle("active", m === "n2f");
@@ -1453,11 +1659,21 @@ function setMode(m) {
 }
 
 function setSource(s) {
+  const wasInSearch = inSearch;
+  if (inSearch) exitSearch();
+  const wasSame = (source === s);
   source = s;
   ["easy", "all", "review"].forEach(k => $("src-" + k).classList.toggle("active", k === s));
   saveStore();
-  if (inGallery) toggleGallery(); // 切題庫時回到測驗頁
-  else nextQuestion();
+  if (inGallery) {
+    inGallery = false;
+    $("gallery").classList.add("hidden");
+    document.querySelector(".quiz-card").classList.remove("hidden");
+    updateBadges();
+    nextQuestion();
+  } else if (!wasSame || !wasInSearch) {
+    nextQuestion();
+  }
 }
 
 // ===== 圖鑑 =====
@@ -1500,6 +1716,7 @@ function renderGallery() {
 }
 
 function toggleGallery() {
+  if (inSearch) exitSearch();
   inGallery = !inGallery;
   document.querySelector(".quiz-card").classList.toggle("hidden", inGallery);
   $("gallery").classList.toggle("hidden", !inGallery);
@@ -1513,6 +1730,215 @@ function toggleGallery() {
     nextQuestion();
   }
 }
+
+// ===== 國家搜尋與關鍵字提示（支援中英文、名稱中間關鍵字比對） =====
+let suggestList = [];
+let suggestIdx = -1;
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+// 正規化字串：轉小寫、統一「台→臺」、「ü→u」（保持字元長度 1:1 對應，方便標示關鍵字位置）
+function normStr(s) {
+  return (s || "").toLowerCase().replace(/台/g, "臺").replace(/ü/g, "u");
+}
+
+function highlightMatch(text, kw) {
+  if (!kw) return escapeHtml(text);
+  const nText = normStr(text);
+  const nKw = normStr(kw);
+  if (!nKw) return escapeHtml(text);
+  let res = "";
+  let pos = 0;
+  while (pos < text.length) {
+    const idx = nText.indexOf(nKw, pos);
+    if (idx === -1) {
+      res += escapeHtml(text.slice(pos));
+      break;
+    }
+    res += escapeHtml(text.slice(pos, idx));
+    res += `<mark>${escapeHtml(text.slice(idx, idx + nKw.length))}</mark>`;
+    pos = idx + nKw.length;
+  }
+  return res;
+}
+
+function searchCountries(rawQuery) {
+  const kw = rawQuery.trim();
+  if (!kw) return [];
+  const nKw = normStr(kw);
+  const matches = [];
+  for (const c of COUNTRIES) {
+    const nZh = normStr(c.zh);
+    const nEn = normStr(c.en);
+    const zhIdx = nZh.indexOf(nKw);
+    const enIdx = nEn.indexOf(nKw);
+    if (zhIdx !== -1 || enIdx !== -1) {
+      // 排序權重：完全相符 > 開頭相符 > 名稱中間包含
+      let rank = 3;
+      if (nZh === nKw || nEn === nKw) rank = 0;
+      else if (zhIdx === 0 || enIdx === 0) rank = 1;
+      else rank = 2;
+      matches.push({ country: c, rank, pos: Math.min(zhIdx === -1 ? 999 : zhIdx, enIdx === -1 ? 999 : enIdx) });
+    }
+  }
+  matches.sort((a, b) => a.rank - b.rank || a.pos - b.pos);
+  return matches.map(m => m.country);
+}
+
+function closeSuggestions() {
+  $("search-suggest").classList.add("hidden");
+  suggestIdx = -1;
+}
+
+function updateActiveSuggestion() {
+  const items = $("search-suggest").querySelectorAll(".sug-item");
+  items.forEach((el, i) => {
+    el.classList.toggle("active", i === suggestIdx);
+    if (i === suggestIdx) el.scrollIntoView({ block: "nearest" });
+  });
+}
+
+function selectSearchCountry(c) {
+  closeSuggestions();
+  $("country-search").value = `${c.zh} (${c.en})`;
+  $("search-clear").classList.remove("hidden");
+  inSearch = true;
+  document.querySelector(".quiz-card").classList.add("hidden");
+  $("gallery").classList.add("hidden");
+  showInfo(c, true);
+}
+
+function exitSearch() {
+  inSearch = false;
+  $("country-search").value = "";
+  $("search-clear").classList.add("hidden");
+  closeSuggestions();
+  $("info-back-btn").classList.add("hidden");
+  if (inGallery) {
+    $("gallery").classList.remove("hidden");
+    document.querySelector(".quiz-card").classList.add("hidden");
+    $("info").classList.add("hidden");
+  } else {
+    document.querySelector(".quiz-card").classList.remove("hidden");
+    $("gallery").classList.add("hidden");
+    if (answered && current) {
+      showInfo(current.answer, false);
+    } else {
+      $("info").classList.add("hidden");
+    }
+  }
+}
+
+function renderSuggestions(rawQuery) {
+  const box = $("search-suggest");
+  const kw = rawQuery.trim();
+  if (!kw) {
+    closeSuggestions();
+    return;
+  }
+  suggestList = searchCountries(kw);
+  suggestIdx = suggestList.length > 0 ? 0 : -1;
+  box.innerHTML = "";
+  if (suggestList.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "sug-empty";
+    empty.textContent = `找不到名稱包含「${kw}」的國家`;
+    box.appendChild(empty);
+    box.classList.remove("hidden");
+    return;
+  }
+  const hdr = document.createElement("div");
+  hdr.className = "search-suggest-header";
+  hdr.textContent = `找到 ${suggestList.length} 個相符國家（點選或按 Enter 查看介紹）`;
+  box.appendChild(hdr);
+  suggestList.forEach((c, i) => {
+    const item = document.createElement("div");
+    item.className = "sug-item" + (i === 0 ? " active" : "");
+    const img = document.createElement("img");
+    img.className = "sug-flag";
+    img.loading = "lazy";
+    img.src = FLAG_URL(c.code, 80);
+    img.alt = c.zh;
+    const names = document.createElement("div");
+    names.className = "sug-names";
+    const zh = document.createElement("span");
+    zh.className = "sug-zh";
+    zh.innerHTML = highlightMatch(c.zh, kw);
+    const en = document.createElement("span");
+    en.className = "sug-en";
+    en.innerHTML = highlightMatch(c.en, kw);
+    names.appendChild(zh);
+    names.appendChild(en);
+    const cont = document.createElement("span");
+    cont.className = "sug-cont";
+    cont.textContent = c.continent;
+    item.appendChild(img);
+    item.appendChild(names);
+    item.appendChild(cont);
+    item.addEventListener("mouseenter", () => {
+      suggestIdx = i;
+      updateActiveSuggestion();
+    });
+    item.addEventListener("click", () => selectSearchCountry(c));
+    box.appendChild(item);
+  });
+  box.classList.remove("hidden");
+}
+
+$("country-search").addEventListener("input", e => {
+  const val = e.target.value;
+  if (!val.trim() && inSearch) {
+    exitSearch();
+    return;
+  }
+  $("search-clear").classList.toggle("hidden", !val && !inSearch);
+  renderSuggestions(val);
+});
+$("country-search").addEventListener("focus", e => {
+  const val = e.target.value.trim();
+  if (val && !inSearch) renderSuggestions(val);
+});
+$("country-search").addEventListener("keydown", e => {
+  const boxOpen = !$("search-suggest").classList.contains("hidden");
+  if (e.key === "ArrowDown" && boxOpen && suggestList.length) {
+    e.preventDefault();
+    suggestIdx = (suggestIdx + 1) % suggestList.length;
+    updateActiveSuggestion();
+  } else if (e.key === "ArrowUp" && boxOpen && suggestList.length) {
+    e.preventDefault();
+    suggestIdx = (suggestIdx - 1 + suggestList.length) % suggestList.length;
+    updateActiveSuggestion();
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (boxOpen && suggestList.length) {
+      const target = suggestList[suggestIdx >= 0 ? suggestIdx : 0];
+      if (target) selectSearchCountry(target);
+    } else {
+      const list = searchCountries($("country-search").value);
+      if (list.length) selectSearchCountry(list[0]);
+    }
+  } else if (e.key === "Escape") {
+    closeSuggestions();
+    $("country-search").blur();
+  }
+});
+$("search-clear").addEventListener("click", () => {
+  if (inSearch) exitSearch();
+  else {
+    $("country-search").value = "";
+    $("search-clear").classList.add("hidden");
+    closeSuggestions();
+    $("country-search").focus();
+  }
+});
+$("info-back-btn").addEventListener("click", () => exitSearch());
+document.addEventListener("click", e => {
+  if (!e.target.closest("#search-wrap")) closeSuggestions();
+});
 
 $("mode-f2n").addEventListener("click", () => setMode("f2n"));
 $("mode-n2f").addEventListener("click", () => setMode("n2f"));
@@ -1536,7 +1962,7 @@ $("speak-info").addEventListener("click", () => { if (infoCountry) speak(infoCou
 $("speak-target").addEventListener("click", () => { if (current) speak(current.answer); });
 $("next").addEventListener("click", nextQuestion);
 document.addEventListener("keydown", e => {
-  if (inGallery || !current || !$("settings-modal").classList.contains("hidden")) return;
+  if (inGallery || inSearch || document.activeElement === $("country-search") || !current || !$("settings-modal").classList.contains("hidden")) return;
   if (answered && (e.key === "Enter" || e.key === " ")) {
     e.preventDefault();
     nextQuestion();
